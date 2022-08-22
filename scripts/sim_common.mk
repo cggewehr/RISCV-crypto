@@ -1,6 +1,8 @@
-compile:
+init:
 
     # TODO: Create worklib
+
+compile:
 
     ${COMP_EXEC} ${COMP_OPTS} ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/${RISCV_CORE}.f
     ${COMP_EXEC} ${COMP_OPTS} ${RISCV_CRYPTO_RTL}/util/util.f
@@ -19,17 +21,9 @@ simgui:
 
     ${SIM_EXEC} ${SIM_GUI_OPTS}
 
-all:
-
-    make compile
-    make elab
-    make sim
+all: compile elab sim
     
-allgui:
-
-    make compile
-    make elab
-    make simgui
+allgui: compile elab simgui
     
 clean:
 

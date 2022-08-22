@@ -39,15 +39,9 @@ module tb_top #(
   parameter bit                  DbgTriggerEn     = 1'b0;
   parameter bit                  ICacheECC        = 1'b0;
   parameter bit                  BranchPredictor  = 1'b0;
-  parameter                      SRAMInitFile     = "";
+  parameter                      SRAMInitFile     = "../MemFile.vmem";
   
 ) ( );
-
-  // export "DPI-C" function mhpmcounter_get;
-
-  function automatic longint unsigned mhpmcounter_get(int index);
-    return simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
-  endfunction
   
   bit clk;
   bit rst_n;
@@ -115,5 +109,11 @@ module tb_top #(
     .rvalid_o  (simple_system.device_rvalid[SimCtrl]),
     .rdata_o   (simple_system.device_rdata[SimCtrl])
   );
+
+  // TODO: finish print CSR
+
+  function automatic longint unsigned mhpmcounter_get(int index);
+    return simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
+  endfunction
     
 endmodule

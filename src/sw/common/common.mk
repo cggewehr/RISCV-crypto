@@ -2,7 +2,8 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-COMMON_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+# Now is set within individual makefiles from each sim area
+# COMMON_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 COMMON_SRCS = $(wildcard $(COMMON_DIR)/*.c)
 INCS := -I$(COMMON_DIR)
@@ -19,7 +20,8 @@ SRCS = $(COMMON_SRCS) $(PROGRAM_C) $(EXTRA_SRCS)
 C_SRCS = $(filter %.c, $(SRCS))
 ASM_SRCS = $(filter %.S, $(SRCS))
 
-CC = riscv32-unknown-elf-gcc
+#CC = riscv32-unknown-elf-gcc
+CC = riscv64-elf-gcc
 
 CROSS_COMPILE = $(patsubst %-gcc,%-,$(CC))
 OBJCOPY ?= $(CROSS_COMPILE)objcopy
@@ -57,7 +59,8 @@ endif
 # https://sourceware.org/bugzilla/show_bug.cgi?id=19921
 # is widely available.
 %.vmem: %.bin
-	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o $@ -vmem
+#	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o $@ -vmem
+	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o MemFile.vmem -vmem
 
 %.bin: %.elf
 	$(OBJCOPY) -O binary $^ $@

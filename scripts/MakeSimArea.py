@@ -23,11 +23,13 @@ def MakeSimArea(DirName):
     # Make dir in RISCV-crypto/build/sim/($DIR_NAME)
     os.makedirs(SimPath, exist_ok = True)  # exist_ok argument to makedirs() only works for Python 3.2+
 
-    # TODO: Create makefile (includes sim_common.mk)
+    # TODO: Create makefile (includes common makefiles)
     with open(SimPath + "/makefile") as makefile:
-        makefile.write(f"ROOT_PATH={RootPath}\n")
-        makefile.write(f"SIM_PATH={SimPath}\n")
+        makefile.write(f"ROOT_PATH=  {RootPath}\n")
+        makefile.write(f"SIM_PATH=  {SimPath}\n")
+        makefile.write(f"VENDOR = Cadence\n")
         makefile.write(f"include $\{{RootPath}\}/scripts/sim_common.mk\n")
+        makefile.write(f"include $$\{{RootPath}\}/sw/common/common.mk\n")
 
     # Create default parameter file in sim area
     shutil.copyfile(RootPath + "/scripts/template/param.txt", SimPath + "param.txt")
