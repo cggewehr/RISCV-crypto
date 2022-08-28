@@ -32,7 +32,10 @@ CRT ?= $(COMMON_DIR)/crt0.S
 CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -g -Os\
 	-fvisibility=hidden -nostdlib -nostartfiles -ffreestanding $(PROGRAM_CFLAGS)
 
-OBJS := ${C_SRCS:.c=.o} ${ASM_SRCS:.S=.o} ${CRT:.S=.o}
+# OBJS := ${C_SRCS:.c=.o} ${ASM_SRCS:.S=.o} ${CRT:.S=.o}
+OBJS := ${SW_BUILD_PATH}/${C_SRCS:.c=.o} ${SW_BUILD_PATH}/${ASM_SRCS:.S=.o} ${SW_BUILD_PATH}/${CRT:.S=.o}
+# This makes it so that object files are created within sim area (build/sim/$SIM_AREA/sw_build, outside src/sw/*)
+OBJS := $(addprefix ${SW_BUILD_PATH}/, ${OBJS})
 DEPS = $(OBJS:%.o=%.d)
 
 ifdef PROGRAM
@@ -60,7 +63,7 @@ endif
 # is widely available.
 %.vmem: %.bin
 #	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o $@ -vmem
-	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o MemFile.vmem -vmem
+	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o ${SIM_PATH}/MemFile.vmem -vmem
 
 %.bin: %.elf
 	$(OBJCOPY) -O binary $^ $@

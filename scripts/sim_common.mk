@@ -1,6 +1,13 @@
 init:
 
     # TODO: Create worklib
+    
+sw:
+
+    @echo ---- Building VMEM file from ${PROGRAM} dir
+    @export
+    make -f ${ROOT_PATH}/sw/${PROGRAM}/Makefile
+    @echo ---- Done building VMEM file from ${PROGRAM} dir
 
 compile:
 
