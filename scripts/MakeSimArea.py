@@ -5,16 +5,20 @@ def MakeSimArea(DirName):
     import os
     import shutil
 
-    RootPath = os.path.abspath(__file__ + "/..")
+    #RootPath = os.path.abspath(__file__) + "/.."
+    RootPath = os.path.dirname(os.path.realpath(__file__)) + "/.."
+    #print(__file__)
+    print(RootPath)
     SimPath = os.path.abspath(RootPath + "/build/" + DirName)
 
     if os.path.exists(SimPath):
 
+        print("Warning: Dir <" + SimPath + "> already exists. Do you wish to proceed (Y/N)?")
+
         while True:
 
             ipt = input()
-
-            print("Warning: Dir <" + SimPath + "> already exists. Do you wish to proceed (Y/N)?")
+            
             if ipt == "Y" or ipt == "y":
                 break  # TODO: Prompt if sim dir should be wiped clean
             elif ipt == "N" or ipt == "n":
@@ -26,7 +30,7 @@ def MakeSimArea(DirName):
     os.makedirs(SimPath + "/log", exist_ok = True)
 
     # TODO: Create makefile (includes common makefiles)
-    with open(SimPath + "/makefile") as makefile:
+    with open(SimPath + "/makefile", 'w') as makefile:
         makefile.write(f"ROOT_PATH={RootPath}\n")
         makefile.write(f"RISCV_CRYPTO_RTL={RootPath + '/src/rtl'}\n")
         makefile.write(f"RISCV_CRYPTO_TBENCH={RootPath + '/src/tbench'}\n")
@@ -36,10 +40,10 @@ def MakeSimArea(DirName):
         makefile.write(f"COMMON_DIR={RootPath + '/src/sw/common'}\n")
         makefile.write(f"VENDOR?=Cadence\n")
         makefile.write(f"PROG?=hello_test\n")
-        makefile.write(f"include $\{{RootPath}\}/scripts/sim_common.mk\n")
+        makefile.write(f"include ${{ROOT_PATH}}/scripts/sim_common.mk\n")
 
     # Create default parameter file in sim area
-    shutil.copyfile(RootPath + "/scripts/template/param.txt", SimPath + "param.txt")
+    shutil.copyfile(RootPath + "/scripts/template/param.txt", SimPath + "/param.txt")
 
 if __name__ == "__main__":
 
