@@ -1,6 +1,18 @@
-init:
 
-    # TODO: Create worklib
+
+# Set tool-specific variables
+ifeq VENDOR Cadence
+    COMP_EXEC=ncvlog
+    COMP_OPTS=-logfile log/cadence/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib
+    ELAB_EXEC=ncelab
+    ELAB_OPTS=-logfile log/cadence/ncelab.log -errormax 15 -update -status -defparam tb_top.SRAMInitFile=${SIM_PATH}/MemFile.vmem worklib.tb_top
+    SIM_EXEC=ncsim
+    SIM_OPTS=-logfile log/cadence/ncsim.log -errormax 15
+    SIM_GUI_OPTS=${SIM_OPTS} -gui
+
+else
+    @echo Vendor <${VENDOR}> not supported by this makefile
+    exit 1
     
 sw:
 
@@ -34,4 +46,5 @@ allgui: compile elab simgui
     
 clean:
 
-    rm work
+    rm xcelium.d
+    rm log
