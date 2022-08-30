@@ -1,25 +1,28 @@
 
 
 # Set tool-specific variables
-ifeq VENDOR Cadence
+ifeq (${VENDOR}, Cadence)
 	COMP_EXEC=ncvlog
-	COMP_OPTS=-logfile log/cadence/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib
+	COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib
 	ELAB_EXEC=ncelab
-	ELAB_OPTS=-logfile log/cadence/ncelab.log -errormax 15 -update -status -defparam tb_top.SRAMInitFile=${SIM_PATH}/MemFile.vmem worklib.tb_top
+	ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -defparam tb_top.SRAMInitFile=${SIM_PATH}/MemFile.vmem worklib.tb_top
 	SIM_EXEC=ncsim
-	SIM_OPTS=-logfile log/cadence/ncsim.log -errormax 15
+	SIM_OPTS=-logfile log/ncsim.log -errormax 15
 	SIM_GUI_OPTS=${SIM_OPTS} -gui
 
 else
 	@echo Vendor <${VENDOR}> not supported by this makefile
 	exit 1
+endif
 	
 sw:
 
-	@echo ---- Building VMEM file from ${PROGRAM} dir
-	@export
-	make -f ${ROOT_PATH}/sw/${PROGRAM}/Makefile
-	@echo ---- Done building VMEM file from ${PROGRAM} dir
+	@echo "---- Building VMEM file from <${PROG}>"
+	@echo "---- Building VMEM file from <${SW_BUILD_PATH}>"
+	@export PROG
+	@export SW_BUILD_PATH
+	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile
+	@echo "---- Done building VMEM file from <${PROG}>"
 
 compile:
 
@@ -46,5 +49,6 @@ allgui: compile elab simgui
 	
 clean:
 
-	rm xcelium.d
-	rm log
+	rm -rf xcelium.d
+	rm -rf log/*
+	rm -rf sw_build/*
