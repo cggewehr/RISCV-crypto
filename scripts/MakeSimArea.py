@@ -6,7 +6,7 @@ def MakeSimArea(DirName):
     import shutil
 
     #RootPath = os.path.abspath(__file__) + "/.."
-    RootPath = os.path.dirname(os.path.realpath(__file__)) + "/.."
+    RootPath = os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/..")
     #print(__file__)
     print(RootPath)
     SimPath = os.path.abspath(RootPath + "/build/" + DirName)
@@ -32,9 +32,10 @@ def MakeSimArea(DirName):
     # TODO: Create makefile (includes common makefiles)
     with open(SimPath + "/makefile", 'w') as makefile:
         makefile.write(f"ROOT_PATH={RootPath}\n")
+        makefile.write(f"RISCV_CORE?=ibex-base\n\n")
         makefile.write(f"RISCV_CRYPTO_RTL={RootPath + '/src/rtl'}\n")
         makefile.write(f"RISCV_CRYPTO_TBENCH={RootPath + '/src/tbench'}\n")
-        makefile.write(f"RISCV_CORE?=ibex-base\n\n")
+        makefile.write(f"SW_SRC_PATH={RootPath + '/src/sw'}\n")
         makefile.write(f"SIM_PATH={SimPath}\n")
         makefile.write(f"SW_BUILD_PATH={SimPath + '/sw_build'}\n")
         makefile.write(f"COMMON_DIR={RootPath + '/src/sw/common'}\n")
