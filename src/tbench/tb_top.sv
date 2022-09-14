@@ -22,24 +22,24 @@
 
 module tb_top #(
 
-  parameter bit                  SecureIbex       = 1'b0;
-  parameter bit                  ICacheScramble   = 1'b0;
-  parameter bit                  PMPEnable        = 1'b0;
-  parameter int unsigned         PMPGranularity   = 0;
-  parameter int unsigned         PMPNumRegions    = 4;
-  parameter int unsigned         MHPMCounterNum   = 0;
-  parameter int unsigned         MHPMCounterWidth = 40;
-  parameter bit                  RV32E            = 1'b0;
-  parameter ibex_pkg::rv32m_e    RV32M            = `RV32M;
-  parameter ibex_pkg::rv32b_e    RV32B            = `RV32B;
-  parameter ibex_pkg::regfile_e  RegFile          = `RegFile;
-  parameter bit                  BranchTargetALU  = 1'b0;
-  parameter bit                  WritebackStage   = 1'b0;
-  parameter bit                  ICache           = 1'b0;
-  parameter bit                  DbgTriggerEn     = 1'b0;
-  parameter bit                  ICacheECC        = 1'b0;
-  parameter bit                  BranchPredictor  = 1'b0;
-  parameter                      SRAMInitFile     = "../MemFile.vmem";
+  parameter bit                  SecureIbex       = 1'b0,
+  parameter bit                  ICacheScramble   = 1'b0,
+  parameter bit                  PMPEnable        = 1'b0,
+  parameter int unsigned         PMPGranularity   = 0,
+  parameter int unsigned         PMPNumRegions    = 4,
+  parameter int unsigned         MHPMCounterNum   = 0,
+  parameter int unsigned         MHPMCounterWidth = 40,
+  parameter bit                  RV32E            = 1'b0,
+  parameter ibex_pkg::rv32m_e    RV32M            = `RV32M,
+  parameter ibex_pkg::rv32b_e    RV32B            = `RV32B,
+  parameter ibex_pkg::regfile_e  RegFile          = `RegFile,
+  parameter bit                  BranchTargetALU  = 1'b0,
+  parameter bit                  WritebackStage   = 1'b0,
+  parameter bit                  ICache           = 1'b0,
+  parameter bit                  DbgTriggerEn     = 1'b0,
+  parameter bit                  ICacheECC        = 1'b0,
+  parameter bit                  BranchPredictor  = 1'b0,
+  parameter                      SRAMInitFile     = "../MemFile.vmem"
   
 ) ( );
   
@@ -71,7 +71,7 @@ module tb_top #(
     
   end
 
-  simple_system #(
+  ibex_simple_system #(
     .SecureIbex      (SecureIbex      ),           
     .ICacheScramble  (ICacheScramble  ),           
     .PMPEnable       (PMPEnable       ),           
@@ -89,8 +89,8 @@ module tb_top #(
     .DbgTriggerEn    (DbgTriggerEn    ),           
     .ICacheECC       (ICacheECC       ),           
     .BranchPredictor (BranchPredictor ),           
-    .SRAMInitFile    (SRAMInitFile    ),             
-  ) ibex_simple_system (
+    .SRAMInitFile    (SRAMInitFile    )             
+  ) u_ibex_simple_system (
     .IO_CLK(clk),
     .IO_RST_N(rst_n)
   );
@@ -98,22 +98,22 @@ module tb_top #(
   simulator_ctrl #(
     .LogName("ibex_simple_system.log")
   ) u_simulator_ctrl (
-    .clk_i     (simple_system.clk_sys),
-    .rst_ni    (simple_system.rst_sys_n),
+    .clk_i     (u_ibex_simple_system.clk_sys),
+    .rst_ni    (u_ibex_simple_system.rst_sys_n),
 
-    .req_i     (simple_system.device_req[SimCtrl]),
-    .we_i      (simple_system.device_we[SimCtrl]),
-    .be_i      (simple_system.device_be[SimCtrl]),
-    .addr_i    (simple_system.device_addr[SimCtrl]),
-    .wdata_i   (simple_system.device_wdata[SimCtrl]),
-    .rvalid_o  (simple_system.device_rvalid[SimCtrl]),
-    .rdata_o   (simple_system.device_rdata[SimCtrl])
+    .req_i     (u_ibex_simple_system.device_req[SimCtrl]),
+    .we_i      (u_ibex_simple_system.device_we[SimCtrl]),
+    .be_i      (u_ibex_simple_system.device_be[SimCtrl]),
+    .addr_i    (u_ibex_simple_system.device_addr[SimCtrl]),
+    .wdata_i   (u_ibex_simple_system.device_wdata[SimCtrl]),
+    .rvalid_o  (u_ibex_simple_system.device_rvalid[SimCtrl]),
+    .rdata_o   (u_ibex_simple_system.device_rdata[SimCtrl])
   );
 
   // TODO: finish print CSR
 
   function automatic longint unsigned mhpmcounter_get(int index);
-    return simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
+    return u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
   endfunction
     
 endmodule

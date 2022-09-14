@@ -3,6 +3,7 @@ ibex_alu.sv
 ibex_compressed_decoder.sv
 ibex_controller.sv
 ibex_counter.sv
+ibex_csr.sv
 ibex_cs_registers.sv
 ibex_decoder.sv
 ibex_ex_block.sv
@@ -16,4 +17,9 @@ ibex_fetch_fifo.sv
 ibex_register_file_ff.sv
 ibex_register_file_fpga.sv
 ibex_register_file_latch.sv
+ibex_wb_stage.sv
 ibex_core.sv
+ibex_top.sv
+ibex_tracer_pkg.sv
+ibex_tracer.sv
+ibex_top_tracing.sv

@@ -735,19 +735,21 @@ module ibex_tracer (
     decoded_str = $sformatf("fence\t%s,%s", predecessor, successor);
   endfunction
 
+  // close output file for writing
+  final begin
+    if (file_handle != 32'h0) begin
+      $fclose(file_handle);
+    end
+  end
+
+  `ifndef SYNTHESIS
+
   // cycle counter
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       cycle <= 0;
     end else begin
       cycle <= cycle + 1;
-    end
-  end
-
-  // close output file for writing
-  final begin
-    if (file_handle != 32'h0) begin
-      $fclose(file_handle);
     end
   end
 
@@ -1066,5 +1068,7 @@ module ibex_tracer (
       endcase
     end
   end
+
+  `endif
 
 endmodule

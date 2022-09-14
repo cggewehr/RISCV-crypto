@@ -38,7 +38,6 @@ module ibex_top_tracing import ibex_pkg::*; #(
   input  logic                         scan_rst_ni,
   input  prim_ram_1p_pkg::ram_1p_cfg_t ram_cfg_i,
 
-
   input  logic [31:0]                  hart_id_i,
   input  logic [31:0]                  boot_addr_i,
 
@@ -214,6 +213,7 @@ module ibex_top_tracing import ibex_pkg::*; #(
     .crash_dump_o,
     .double_fault_seen_o,
 
+`ifdef RVFI
     .rvfi_valid,
     .rvfi_order,
     .rvfi_insn,
@@ -243,6 +243,7 @@ module ibex_top_tracing import ibex_pkg::*; #(
     .rvfi_ext_mcycle,
     .rvfi_ext_mhpmcounters,
     .rvfi_ext_mhpmcountersh,
+`endif
 
     .fetch_enable_i,
     .alert_minor_o,

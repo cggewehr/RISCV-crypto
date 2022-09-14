@@ -14,26 +14,26 @@
  * simulator_ctrl module.
  */
 
-module ibex_simple_system # (
+module ibex_simple_system import ibex_pkg::*; #(
 
-  parameter bit                 SecureIbex               = 1'b0;
-  parameter bit                 ICacheScramble           = 1'b0;
-  parameter bit                 PMPEnable                = 1'b0;
-  parameter int unsigned        PMPGranularity           = 0;
-  parameter int unsigned        PMPNumRegions            = 4;
-  parameter int unsigned        MHPMCounterNum           = 0;
-  parameter int unsigned        MHPMCounterWidth         = 40;
-  parameter bit                 RV32E                    = 1'b0;
-  parameter ibex_pkg::rv32m_e   RV32M                    /*= `RV32M*/;
-  parameter ibex_pkg::rv32b_e   RV32B                    /*= `RV32B*/;
-  parameter ibex_pkg::regfile_e RegFile                  /*= `RegFile*/;
-  parameter bit                 BranchTargetALU          = 1'b0;
-  parameter bit                 WritebackStage           = 1'b0;
-  parameter bit                 ICache                   = 1'b0;
-  parameter bit                 DbgTriggerEn             = 1'b0;
-  parameter bit                 ICacheECC                = 1'b0;
-  parameter bit                 BranchPredictor          = 1'b0;
-  parameter                     SRAMInitFile             = "";
+  parameter bit                 SecureIbex               = 1'b0,
+  parameter bit                 ICacheScramble           = 1'b0,
+  parameter bit                 PMPEnable                = 1'b0,
+  parameter int unsigned        PMPGranularity           = 0,
+  parameter int unsigned        PMPNumRegions            = 4,
+  parameter int unsigned        MHPMCounterNum           = 0,
+  parameter int unsigned        MHPMCounterWidth         = 40,
+  parameter bit                 RV32E                    = 1'b0,
+  parameter ibex_pkg::rv32m_e   RV32M                    = RV32MFast,
+  parameter ibex_pkg::rv32b_e   RV32B                    = RV32BNone,
+  parameter ibex_pkg::regfile_e RegFile                  = RegFileLatch,
+  parameter bit                 BranchTargetALU          = 1'b0,
+  parameter bit                 WritebackStage           = 1'b0,
+  parameter bit                 ICache                   = 1'b0,
+  parameter bit                 DbgTriggerEn             = 1'b0,
+  parameter bit                 ICacheECC                = 1'b0,
+  parameter bit                 BranchPredictor          = 1'b0,
+  parameter string              SRAMInitFile             = ""
 
 ) (
 
@@ -46,7 +46,6 @@ module ibex_simple_system # (
   logic rst_sys_n;
 
   typedef enum logic {CoreD} bus_host_e;
-
   typedef enum logic[1:0] {Ram, SimCtrl, Timer} bus_device_e;
 
   localparam int NrDevices = 3;
@@ -194,9 +193,9 @@ module ibex_simple_system # (
     .clk_i                  (clk_sys),
     .rst_ni                 (rst_sys_n),
 
-    .test_en_i              ('b0),
+    .test_en_i              (1'b0),
     .scan_rst_ni            (1'b1),
-    .ram_cfg_i              ('b0),
+    .ram_cfg_i              (10'b0),
 
     .hart_id_i              (32'b0),
     // First instruction executed is at 0x0 + 0x80
@@ -233,7 +232,7 @@ module ibex_simple_system # (
     .scramble_nonce_i       ('0),
     .scramble_req_o         (),
 
-    .debug_req_i            ('b0),
+    .debug_req_i            (1'b0),
     .crash_dump_o           (),
     .double_fault_seen_o    (),
 

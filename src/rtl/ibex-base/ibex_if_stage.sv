@@ -364,14 +364,14 @@ module ibex_if_stage import ibex_pkg::*; #(
     // implies. This then causes problems for linking against C++ testbench code that expected them.
     // As a slightly ugly hack, let's define the DPI functions here (the real versions are defined
     // in prim_util_get_scramble_params.svh)
-    export "DPI-C" function simutil_get_scramble_key;
-    export "DPI-C" function simutil_get_scramble_nonce;
-    function automatic int simutil_get_scramble_key(output bit [127:0] val);
-      return 0;
-    endfunction
-    function automatic int simutil_get_scramble_nonce(output bit [319:0] nonce);
-      return 0;
-    endfunction
+    //export "DPI-C" function simutil_get_scramble_key;
+    //export "DPI-C" function simutil_get_scramble_nonce;
+    //function automatic int simutil_get_scramble_key(output bit [127:0] val);
+    //  return 0;
+    //endfunction
+    //function automatic int simutil_get_scramble_nonce(output bit [319:0] nonce);
+    //  return 0;
+    //endfunction
 `endif
   end
 
