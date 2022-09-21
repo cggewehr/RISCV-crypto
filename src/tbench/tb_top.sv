@@ -46,6 +46,9 @@ module tb_top #(
   bit clk;
   bit rst_n;
   
+  typedef enum logic {CoreD} bus_host_e;
+  typedef enum logic[1:0] {Ram, SimCtrl, Timer} bus_device_e;
+
   initial begin
     
     clk <= 1'b0;
@@ -96,7 +99,7 @@ module tb_top #(
   );
 
   simulator_ctrl #(
-    .LogName("ibex_simple_system.log")
+    .LogName("log/ibex_simple_system.log")
   ) u_simulator_ctrl (
     .clk_i     (u_ibex_simple_system.clk_sys),
     .rst_ni    (u_ibex_simple_system.rst_sys_n),
@@ -110,10 +113,20 @@ module tb_top #(
     .rdata_o   (u_ibex_simple_system.device_rdata[SimCtrl])
   );
 
-  // TODO: finish print CSR
-
   function automatic longint unsigned mhpmcounter_get(int index);
     return u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
   endfunction
-    
+
+  final begin
+
+    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions"};
+
+    $display("Performance Counters");
+    $display("====================");
+
+    foreach (reg_names[reg_index])
+      $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index));
+
+  end
+
 endmodule

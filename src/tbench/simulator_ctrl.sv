@@ -56,7 +56,8 @@ module simulator_ctrl #(
 
   assign ctrl_addr = addr_i[9:2];
 
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  // always_ff @(posedge clk_i or negedge rst_ni) begin
+  always @(posedge clk_i or negedge rst_ni) begin
     if (~rst_ni) begin
       rvalid_o <= 0;
       sim_finish <= 'b0;

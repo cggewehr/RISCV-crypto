@@ -42,7 +42,7 @@ module ibex_simple_system import ibex_pkg::*; #(
 
 );
 
-  logic clk_sys = 1'b0;
+  logic clk_sys /*= 1'b0*/;
   logic rst_sys_n;
 
   typedef enum logic {CoreD} bus_host_e;

@@ -8,7 +8,7 @@ ifeq (${VENDOR}, Cadence)
 	ELAB_EXEC=ncelab
 	ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" worklib.tb_top
 	SIM_EXEC=ncsim
-	SIM_OPTS=-logfile log/ncsim.log -errormax 15
+	SIM_OPTS=-logfile log/ncsim.log -errormax 15 worklib.tb_top
 	SIM_GUI_OPTS=${SIM_OPTS} -gui
 
 else
