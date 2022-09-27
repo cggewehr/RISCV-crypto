@@ -1,4 +1,4 @@
-
+export SCRIPTS_DIR := ${SCRIPTS_DIR}
 
 # Set tool-specific variables
 ifeq (${VENDOR}, Cadence)
@@ -9,7 +9,7 @@ ifeq (${VENDOR}, Cadence)
 	ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" worklib.tb_top
 	SIM_EXEC=ncsim
 	SIM_OPTS=-logfile log/ncsim.log -errormax 15 worklib.tb_top
-	SIM_GUI_OPTS=${SIM_OPTS} -gui
+	SIM_GUI_OPTS=${SIM_OPTS} -gui -input ${SCRIPTS_DIR}/cadence_gui.tcl
 
 else
 	@echo Vendor <${VENDOR}> not supported by this makefile
@@ -61,7 +61,11 @@ allgui: comp elab simgui
 	
 clean:
 
+	rm -rf *.err
+	rm -rf *.diag
+	rm -rf *.key
 	rm -rf xcelium.d
+	rm -rf waves.shm
 	rm -rf log/*
 	rm -rf sw_build/*
 	rm -rf MemFile.vmem

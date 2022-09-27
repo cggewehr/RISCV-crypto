@@ -1,0 +1,227 @@
+# SimVision Command Script (Tue Sep 27 09:09:57 -03 2022)
+#
+# Version 19.03.s013
+#
+# You can restore this configuration with:
+#
+#      ncsim -logfile log/ncsim.log -errormax 15 worklib.tb_top -input restore.tcl
+#
+
+
+#
+# Preferences
+#
+preferences set plugin-enable-svdatabrowser-new 1
+preferences set toolbar-sendToIndago-WaveWindow {
+  usual
+  position -pos 1
+}
+preferences set toolbar-Standard-Console {
+  usual
+  position -pos 1
+}
+preferences set toolbar-Search-Console {
+  usual
+  position -pos 2
+}
+preferences set plugin-enable-groupscope 0
+preferences set plugin-enable-interleaveandcompare 0
+preferences set plugin-enable-waveformfrequencyplot 0
+
+#
+# Simulator
+#
+database require simulator -hints {
+	simulator "ncsim -logfile log/ncsim.log -errormax 15 worklib.tb_top -gui -input restore.tcl"
+}
+#
+# Groups
+#
+catch {group new -name {IbexCsrOpEnRequiresAccess contributors} -overlay 0}
+group using {IbexCsrOpEnRequiresAccess contributors}
+group set -overlay 0
+group set -comment {simulator::tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.IbexCsrOpEnRequiresAccess contributors}
+group clear 0 end
+
+group insert \
+    [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.clk_i}]} ] \
+    [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.csr_op_en_i}]} ] \
+    [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.csr_access_i}]} ] \
+    [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.rst_ni}]} ]
+
+#
+# Mnemonic Maps
+#
+mmap new  -reuse -name {Boolean as Logic} -radix %b -contents {{%c=FALSE -edgepriority 1 -shape low}
+{%c=TRUE -edgepriority 1 -shape high}}
+mmap new  -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor orange -label REG:%x -linecolor yellow -shape bus}
+{%x=1F -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=2C -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=* -label %x -linecolor gray -shape bus}}
+
+#
+# Design Browser windows
+#
+if {[catch {window new WatchList -name "Design Browser 1" -geometry 1146x741+555+125}] != ""} {
+    window geometry "Design Browser 1" 1146x741+555+125
+}
+window target "Design Browser 1" on
+browser using {Design Browser 1}
+browser set -scope [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i}]} ]
+browser set \
+    -showassertions 0 \
+    -showinternals 0 \
+    -signalsort name
+browser yview see [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i}]} ]
+browser timecontrol set -lock 0
+
+#
+# Waveform windows
+#
+if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1920x1017+0+23}] != ""} {
+    window geometry "Waveform 1" 1920x1017+0+23
+}
+window target "Waveform 1" on
+waveform using {Waveform 1}
+waveform sidebar visibility partial
+waveform set \
+    -primarycursor TimeA \
+    -signalnames name \
+    -signalwidth 239 \
+    -units ns \
+    -valuewidth 86
+waveform baseline set -time 0
+
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.clk_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.rst_ni}]}
+	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.multdiv_sel_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.adder_result_ext_o[33:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.adder_result_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.comparison_result_o}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.imd_val_d_o[0:1]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.imd_val_q_i[0:1]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.imd_val_we_o[1:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.instr_first_cycle_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.is_equal_result_o}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.multdiv_operand_a_i[32:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.multdiv_operand_b_i[32:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.operand_a_i[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.operand_b_i[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.operator_i[6:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.alu_i.result_o[31:0]}]}
+	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.raddr_a_i[4:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.raddr_b_i[4:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.rdata_a_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.rdata_b_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.waddr_a_i[4:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.wdata_a_i[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.we_a_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.gen_regfile_latch.register_file_i.mem[0:31]}]}
+	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i.data_rvalid_i}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i.data_rdata_i[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i.data_wdata_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i.data_addr_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i.data_we_o}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i.data_req_o}]}
+	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.csr_addr[11:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.csr_we_int}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounterh_we[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter_incr[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter_we[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[0:31]}]}
+	} ]]
+
+waveform xview limits 0 420592ns
+waveform delta load {-item cursor -value 165,980ns}
+
+#
+# Waveform Window Links
+#
+
+#
+# Console windows
+#
+console set -windowname Console
+window geometry Console 730x250+261+564
+
+#
+# Layout selection
+#
+
