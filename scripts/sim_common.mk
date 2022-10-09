@@ -1,10 +1,12 @@
+export RISCV_CORE := ${RISCV_CORE}
+export RISCV_CRYPTO_RTL := ${RISCV_CRYPTO_RTL}
 export SCRIPTS_DIR := ${SCRIPTS_DIR}
 
 # Set tool-specific variables
 ifeq (${VENDOR}, Cadence)
 	COMP_EXEC=ncvlog
 	COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+RVFI
-#	COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+RVFI
+#	COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib +incdir+${RISCV_CRYPTO_RTL}/util
 	ELAB_EXEC=ncelab
 	ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" worklib.tb_top
 	SIM_EXEC=ncsim
@@ -58,7 +60,11 @@ simgui:
 all: comp elab sim
 	
 allgui: comp elab simgui
-	
+
+netlist:
+
+	genus -f ${SCRIPTS_DIR}/genus.tcl -no_gui
+
 clean:
 
 	rm -rf *.err
@@ -69,3 +75,4 @@ clean:
 	rm -rf log/*
 	rm -rf sw_build/*
 	rm -rf MemFile.vmem
+	rm -rf deliverables
