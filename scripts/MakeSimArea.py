@@ -28,6 +28,7 @@ def MakeSimArea(DirName):
     os.makedirs(SimPath, exist_ok = True)  # exist_ok argument to makedirs() only works for Python 3.2+
     os.makedirs(SimPath + "/sw_build", exist_ok = True)
     os.makedirs(SimPath + "/log", exist_ok = True)
+    os.makedirs(SimPath + "/deliverables", exist_ok = True)
 
     # TODO: Create makefile (includes common makefiles)
     with open(SimPath + "/makefile", 'w') as makefile:

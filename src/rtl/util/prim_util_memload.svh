@@ -66,7 +66,7 @@
     val[Width-1:0] = mem[index];
     return 1;
   endfunction
-`endif
+//`endif
 
 initial begin
   logic show_mem_paths;
@@ -80,3 +80,4 @@ initial begin
       $readmemh(MemInitFile, mem);
   end
 end
+`endif

@@ -91,9 +91,23 @@ module ibex_top_tracing import ibex_pkg::*; #(
 );
 
   // ibex_tracer relies on the signals from the RISC-V Formal Interface
-  `ifndef RVFI
-    $fatal("Fatal error: RVFI needs to be defined globally.");
-  `endif
+  //`ifndef RVFI
+  //  $fatal("Fatal error: RVFI needs to be defined globally.");
+  //`endif
+
+`ifdef NETLIST
+  logic[3:0] \ram_cfg_i[ram_cfg][cfg] ;
+  logic \ram_cfg_i[ram_cfg][cfg_en] ;
+  logic[3:0] \ram_cfg_i[rf_cfg][cfg] ;
+  logic \ram_cfg_i[rf_cfg][cfg_en] ;
+
+  logic[31:0] \crash_dump_o[current_pc] ;
+  logic[31:0] \crash_dump_o[next_pc] ;
+  logic[31:0] \crash_dump_o[last_data_addr] ;
+  logic[31:0] \crash_dump_o[exception_pc] ;
+  logic[31:0] \crash_dump_o[exception_addr] ;
+
+`endif
 
   logic        rvfi_valid;
   logic [63:0] rvfi_order;
@@ -135,8 +149,7 @@ module ibex_top_tracing import ibex_pkg::*; #(
   logic        unused_rvfi_ext_debug_req;
   logic [63:0] unused_rvfi_ext_mcycle;
 
-  // Tracer doesn't use these signals, though other modules may probe down into tracer to observe
-  // them.
+  // Tracer doesn't use these signals, though other modules may probe down into tracer to observe them
   assign unused_rvfi_ext_mip = rvfi_ext_mip;
   assign unused_rvfi_ext_nmi = rvfi_ext_nmi;
   assign unused_rvfi_ext_debug_req = rvfi_ext_debug_req;
@@ -144,7 +157,22 @@ module ibex_top_tracing import ibex_pkg::*; #(
   assign unused_perf_regs = rvfi_ext_mhpmcounters;
   assign unused_perf_regsh = rvfi_ext_mhpmcountersh;
 
-  ibex_top #(
+`ifdef NETLIST
+
+  assign \ram_cfg_i[ram_cfg][cfg] = ram_cfg_i.ram_cfg.cfg;
+  assign \ram_cfg_i[ram_cfg][cfg_en] = ram_cfg_i.ram_cfg.cfg_en;
+  assign \ram_cfg_i[rf_cfg][cfg] = ram_cfg_i.rf_cfg.cfg;
+  assign \ram_cfg_i[rf_cfg][cfg_en] = ram_cfg_i.rf_cfg.cfg_en;
+
+  assign crash_dump_o.current_pc = \crash_dump_o[current_pc] ;
+  assign crash_dump_o.next_pc = \crash_dump_o[next_pc] ;
+  assign crash_dump_o.last_data_addr = \crash_dump_o[last_data_addr] ;
+  assign crash_dump_o.exception_pc = \crash_dump_o[exception_pc] ;
+  assign crash_dump_o.exception_addr = \crash_dump_o[exception_addr] ;
+
+`endif
+
+  ibex_top `ifndef NETLIST #(
     .PMPEnable        ( PMPEnable        ),
     .PMPGranularity   ( PMPGranularity   ),
     .PMPNumRegions    ( PMPNumRegions    ),
@@ -167,13 +195,21 @@ module ibex_top_tracing import ibex_pkg::*; #(
     .RndCnstLfsrPerm  ( RndCnstLfsrPerm  ),
     .DmHaltAddr       ( DmHaltAddr       ),
     .DmExceptionAddr  ( DmExceptionAddr  )
-  ) u_ibex_top (
+  ) `endif u_ibex_top (
     .clk_i,
     .rst_ni,
 
     .test_en_i,
     .scan_rst_ni,
+
+`ifndef NETLIST
     .ram_cfg_i,
+`else
+    .\ram_cfg_i[ram_cfg][cfg] ,
+    .\ram_cfg_i[ram_cfg][cfg_en] ,
+    .\ram_cfg_i[rf_cfg][cfg] ,
+    .\ram_cfg_i[rf_cfg][cfg_en] ,
+`endif
 
     .hart_id_i,
     .boot_addr_i,
@@ -210,7 +246,16 @@ module ibex_top_tracing import ibex_pkg::*; #(
     .scramble_req_o,
 
     .debug_req_i,
+`ifndef NETLIST
     .crash_dump_o,
+`else
+    .\crash_dump_o[current_pc] ,
+    .\crash_dump_o[next_pc] ,
+    .\crash_dump_o[last_data_addr] ,
+    .\crash_dump_o[exception_pc] ,
+    .\crash_dump_o[exception_addr] ,
+`endif
+
     .double_fault_seen_o,
 
 `ifdef RVFI
@@ -252,8 +297,8 @@ module ibex_top_tracing import ibex_pkg::*; #(
     .core_sleep_o
   );
 
-  ibex_tracer
-  u_ibex_tracer (
+`ifdef RVFI
+  ibex_tracer u_ibex_tracer (
     .clk_i,
     .rst_ni,
 
@@ -283,5 +328,6 @@ module ibex_top_tracing import ibex_pkg::*; #(
     .rvfi_mem_rdata,
     .rvfi_mem_wdata
   );
+`endif
 
 endmodule

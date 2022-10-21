@@ -1,28 +1,51 @@
 export RISCV_CORE := ${RISCV_CORE}
 export RISCV_CRYPTO_RTL := ${RISCV_CRYPTO_RTL}
+SCRIPTS_DIR=${ROOT_PATH}/scripts
 export SCRIPTS_DIR := ${SCRIPTS_DIR}
+export SIM_PATH := ${SIM_PATH}
+
+NETLIST ?= 0
+CELL_LIB_BASE_PATH = /soft64/design-kits/stm/28nm-cmos28fdsoi_24/C28SOI_SC_12
+CELL_LIB_VERILOG = $(CELL_LIB_BASE_PATH)_CORE_LR@2.0@20130411.0/behaviour/verilog/C28SOI_SC_12_CORE_LR.v $(CELL_LIB_BASE_PATH)_CLK_LR@2.1@20130621.0/behaviour/verilog/C28SOI_SC_12_CLK_LR.v
 
 # Set tool-specific variables
 ifeq (${VENDOR}, Cadence)
 	COMP_EXEC=ncvlog
-	COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+RVFI
-#	COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -sv -work worklib +incdir+${RISCV_CRYPTO_RTL}/util
+
+    ifeq ($(NETLIST), 0)
+		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+RVFI
+		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -timescale 1ps/1ps worklib.tb_top
+	else
+#		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST +define+functional
+		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST
+		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -timescale 1ps/1ps worklib.tb_top
+	endif
+
 	ELAB_EXEC=ncelab
-	ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" worklib.tb_top
 	SIM_EXEC=ncsim
-	SIM_OPTS=-logfile log/ncsim.log -errormax 15 worklib.tb_top
+	SIM_OPTS=-logfile log/ncsim.log -errormax 15 -nowarn NCEXDEP -nowarn DSEM2009 worklib.tb_top
 	SIM_GUI_OPTS=${SIM_OPTS} -gui -input ${SCRIPTS_DIR}/cadence_gui.tcl
+	SYN_EXEC=genus
+	SYN_OPTS=-f ${SCRIPTS_DIR}/genus/genus.tcl -no_gui -log log/genus -overwrite
 
 else
 	@echo Vendor <${VENDOR}> not supported by this makefile
 	exit 1
 endif
 
+
 SYN_FILES = $(addprefix ${RISCV_CRYPTO_RTL}/syn/, $(shell cat ${RISCV_CRYPTO_RTL}/syn/syn.f))
 UTIL_FILES = $(addprefix ${RISCV_CRYPTO_RTL}/util/, $(shell cat ${RISCV_CRYPTO_RTL}/util/util.f))
-CORE_FILES = $(addprefix ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/, $(shell cat ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/${RISCV_CORE}.f))
-TOP_FILES = ${RISCV_CRYPTO_RTL}/simple-system-top/ibex_simple_system.sv
+
+ifeq ($(NETLIST), 0)
+	CORE_FILES = $(addprefix ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/, $(shell cat ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/${RISCV_CORE}.f))
+else
+	CORE_FILES = ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/ibex_pkg.sv ${SIM_PATH}/deliverables/ibex_top.v $(CELL_LIB_VERILOG)
+endif
+
+TOP_FILES = $(addprefix ${RISCV_CRYPTO_RTL}/simple-system-top/, $(shell cat ${RISCV_CRYPTO_RTL}/simple-system-top/simple-system.f))
 TB_FILES = $(addprefix ${RISCV_CRYPTO_TBENCH}/, $(shell cat ${RISCV_CRYPTO_TBENCH}/tb.f))
+
 
 sw:
 
@@ -63,7 +86,8 @@ allgui: comp elab simgui
 
 netlist:
 
-	genus -f ${SCRIPTS_DIR}/genus.tcl -no_gui
+	@echo -e "\n---- Running synthesis"
+	${SYN_EXEC} ${SYN_OPTS}
 
 clean:
 
@@ -75,4 +99,7 @@ clean:
 	rm -rf log/*
 	rm -rf sw_build/*
 	rm -rf MemFile.vmem
-	rm -rf deliverables
+	rm -rf deliverables/*
+	rm -rf fv
+	rm -rf genus
+	rm -rf genus.*

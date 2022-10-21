@@ -15,14 +15,15 @@
   `define RegFile ibex_pkg::RegFileLatch
 `endif
 
-// Default clock frequency to 64 MHz
+// Default clock frequency to 500 MHz
 `ifndef ClockPeriod
-  `define ClockPeriod 15.625ns
+  `define ClockPeriod 2ns
 `endif
 
 module tb_top #(
 
-  parameter bit                  SecureIbex       = 1'b0,
+  // parameter bit                  SecureIbex       = 1'b0,
+  parameter bit                  SecureIbex       = 1'b1,
   parameter bit                  ICacheScramble   = 1'b0,
   parameter bit                  PMPEnable        = 1'b0,
   parameter int unsigned         PMPGranularity   = 0,
@@ -113,20 +114,27 @@ module tb_top #(
     .rdata_o   (u_ibex_simple_system.device_rdata[SimCtrl])
   );
 
-  function automatic longint unsigned mhpmcounter_get(int index);
-    return u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
-  endfunction
+  `ifndef NETLIST
+    function automatic longint unsigned mhpmcounter_get(int index);
+      return u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
+    endfunction
+  `endif
 
   final begin
 
-    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions"};
+    `ifndef NETLIST
+      string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions"};
 
-    $display("Performance Counters");
-    $display("====================");
+      $display("Performance Counters");
+      $display("====================");
 
-    foreach (reg_names[reg_index])
-      $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index));
-
+      foreach (reg_names[reg_index])
+        $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index));
+    `else
+      $display("====================");
+      $display("End of Netlist Simulation");
+      $display("====================");
+    `endif
   end
 
 endmodule

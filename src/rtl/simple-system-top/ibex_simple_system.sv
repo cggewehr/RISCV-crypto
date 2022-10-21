@@ -16,7 +16,8 @@
 
 module ibex_simple_system import ibex_pkg::*; #(
 
-  parameter bit                 SecureIbex               = 1'b0,
+  // parameter bit                 SecureIbex               = 1'b0,
+  parameter bit                 SecureIbex               = 1'b1,
   parameter bit                 ICacheScramble           = 1'b0,
   parameter bit                 PMPEnable                = 1'b0,
   parameter int unsigned        PMPGranularity           = 0,

@@ -6,6 +6,7 @@ ibex_counter.sv
 ibex_csr.sv
 ibex_cs_registers.sv
 ibex_decoder.sv
+ibex_dummy_instr.sv
 ibex_ex_block.sv
 ibex_id_stage.sv
 ibex_if_stage.sv
@@ -20,6 +21,3 @@ ibex_register_file_latch.sv
 ibex_wb_stage.sv
 ibex_core.sv
 ibex_top.sv
-ibex_tracer_pkg.sv
-ibex_tracer.sv
-ibex_top_tracing.sv

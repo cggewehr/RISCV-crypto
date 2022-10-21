@@ -21,7 +21,7 @@ module ibex_top import ibex_pkg::*; #(
   parameter bit          RV32E            = 1'b0,
   parameter rv32m_e      RV32M            = RV32MFast,
   parameter rv32b_e      RV32B            = RV32BNone,
-  parameter regfile_e    RegFile          = RegFileFF,
+  parameter regfile_e    RegFile          = RegFileLatch,
   parameter bit          BranchTargetALU  = 1'b0,
   parameter bit          WritebackStage   = 1'b0,
   parameter bit          ICache           = 1'b0,
@@ -29,7 +29,8 @@ module ibex_top import ibex_pkg::*; #(
   parameter bit          BranchPredictor  = 1'b0,
   parameter bit          DbgTriggerEn     = 1'b0,
   parameter int unsigned DbgHwBreakNum    = 1,
-  parameter bit          SecureIbex       = 1'b0,
+  // parameter bit          SecureIbex       = 1'b0,
+  parameter bit          SecureIbex       = 1'b1,
   parameter bit          ICacheScramble   = 1'b0,
   parameter lfsr_seed_t  RndCnstLfsrSeed  = RndCnstLfsrSeedDefault,
   parameter lfsr_perm_t  RndCnstLfsrPerm  = RndCnstLfsrPermDefault,
@@ -135,13 +136,16 @@ module ibex_top import ibex_pkg::*; #(
   input logic                          scan_rst_ni
 );
 
-  localparam bit          Lockstep          = SecureIbex;
+  //localparam bit          Lockstep          = SecureIbex;
+  localparam bit          Lockstep          = 1'b0;
   localparam bit          ResetAll          = Lockstep;
+  //localparam bit          ResetAll          = 1'b1;
   localparam bit          DummyInstructions = SecureIbex;
   localparam bit          RegFileECC        = SecureIbex;
   localparam bit          RegFileWrenCheck  = SecureIbex;
   localparam int unsigned RegFileDataWidth  = RegFileECC ? 32 + 7 : 32;
-  localparam bit          MemECC            = SecureIbex;
+  //localparam bit          MemECC            = SecureIbex;
+  localparam bit          MemECC            = 1'b0;
   localparam int unsigned MemDataWidth      = MemECC ? 32 + 7 : 32;
   // Icache parameters
   localparam int unsigned BusSizeECC        = ICacheECC ? (BUS_SIZE + 7) : BUS_SIZE;

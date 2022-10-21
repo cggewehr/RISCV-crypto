@@ -1,9 +1,10 @@
 set RISCV_CORE $env(RISCV_CORE)
 set RISCV_CRYPTO_RTL $env(RISCV_CRYPTO_RTL)
 set SCRIPTS_DIR $env(SCRIPTS_DIR)
+set SIM_DIR $env(SIM_PATH)
 
-set_db script_search_path "${SCRIPTS_DIR}"
-set_db hdl_search_path "${RISCV_CRYPTO_RTL}/syn/ ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/"
+set_db script_search_path "${SCRIPTS_DIR} ${SCRIPTS_DIR}/genus"
+set_db hdl_search_path "${RISCV_CRYPTO_RTL}/syn/ ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/ ${RISCV_CRYPTO_RTL}/util/"
 set_db information_level 9 
 
 set_db hdl_track_filename_row_col true
@@ -30,8 +31,13 @@ set_db library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_L
                 /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/libs/C28SOI_SC_12_CLK_LR_tt28_1.00V_25C.lib"
              
 #set LEF           
+#set_db lef_library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/SiteDefKit_cmos28@1.4@20120720.0/LEF/sites.lef \
+#                    ../../psynth/28nm/lef/technology.12T.lef \
+#                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_LR@2.0@20130411.0/CADENCE/LEF/C28SOI_SC_12_CORE_LR_soc.lef \
+#                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_PR_LR@2.0@20130412.0/CADENCE/LEF/C28SOI_SC_12_PR_LR_soc.lef \
+#                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/CADENCE/LEF/C28SOI_SC_12_CLK_LR_soc.lef"
 set_db lef_library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/SiteDefKit_cmos28@1.4@20120720.0/LEF/sites.lef \
-                    ../../psynth/28nm/lef/technology.12T.lef \
+                    /soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit_cmos028_6U1x_2U2x_2T8x_LB@4.2.1/LEF/technology.12T.lef \
                     /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_LR@2.0@20130411.0/CADENCE/LEF/C28SOI_SC_12_CORE_LR_soc.lef \
                     /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_PR_LR@2.0@20130412.0/CADENCE/LEF/C28SOI_SC_12_PR_LR_soc.lef \
                     /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/CADENCE/LEF/C28SOI_SC_12_CLK_LR_soc.lef"
@@ -41,3 +47,27 @@ set_db cap_table_file "/soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit
 
 #Set PLE
 set_db interconnect_mode ple
+
+# Reads parameter file and outputs parameter string in Genus expected format
+proc getParams {paramFileName} {
+
+    set params "\{"
+
+    if {[file exists $paramFileName]} {
+
+        set paramFile [open $paramFileName]
+        set lines [split [read $paramFile] "\n"]
+        close $paramFile;
+
+        foreach line $lines {
+            puts $line
+            append params " " "\{ [lindex [split $line =] 0] " " [lindex [split $line =] 1] \}"
+        }
+
+    }
+
+    append params "" "\}"
+    puts "$params"
+    return params
+}
+
