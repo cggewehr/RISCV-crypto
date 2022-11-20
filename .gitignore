@@ -1,1 +1,8 @@
 build/*
+src/sw/common/tinycrypt/test/*.d
+src/sw/common/tinycrypt/test/*.o
+src/sw/common/tinycrypt/test/test_aes
+src/sw/common/tinycrypt/test/test_ccm_mode
+src/sw/common/tinycrypt/test/test_ctr_mode
+src/sw/common/tinycrypt/test/test_ctr_prng
+src/sw/common/tinycrypt/test/test_sha256
