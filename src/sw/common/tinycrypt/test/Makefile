@@ -9,7 +9,8 @@
 include ../config.mk
 
 TEST_LIB_FILE:=test_ecc_utils.c
-TEST_SOURCE:=$(filter-out $(TEST_LIB_FILE), $(wildcard test_*.c))
+#TEST_SOURCE:=$(filter-out $(TEST_LIB_FILE), $(wildcard test_*.c))
+TEST_SOURCE:=test_aes.c test_ccm_mode.c test_ctr_mode.c test_ctr_prng.c test_sha256.c
 
 TEST_OBJECTS:=$(TEST_SOURCE:.c=.o)
 TEST_DEPS:=$(TEST_SOURCE:.c=.d)
