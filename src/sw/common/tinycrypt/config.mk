@@ -10,7 +10,7 @@
 #CC:=gcc
 CC:=riscv64-elf-gcc
 #CFLAGS:=-Os -std=c99 -Wall -Wextra -D_ISOC99_SOURCE -MMD -I../lib/include/ -I../lib/source/ -I../tests/include/
-CFLAGS:=-Os -std=c99 -Wall -Wextra -D_ISOC99_SOURCE -MMD -I../ -I./include/ 
+CFLAGS:=-Os -std=c99 -Wall -Wextra -D_ISOC99_SOURCE -MMD -I../ -I../../ -I./include/ 
 #vpath %.c ../lib/source/
 vpath %.c ../
 ENABLE_TESTS=true

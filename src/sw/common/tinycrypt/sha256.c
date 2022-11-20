@@ -41,7 +41,7 @@
     #define SHA256_COMPRESS(a, b) \
         sha256_init_asm(a) \
         sha256_compress_asm(a, b) \
-        sha256_finish_asm(a) \
+        sha256_finish_asm(a)
 #endif
 
 int tc_sha256_init(TCSha256State_t s)
