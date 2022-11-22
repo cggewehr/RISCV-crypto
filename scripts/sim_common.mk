@@ -16,8 +16,8 @@ ifeq (${VENDOR}, Cadence)
 		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+RVFI
 		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -timescale 1ps/1ps worklib.tb_top
 	else
-#		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST +define+functional
-		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST
+		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST +define+functional
+#		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST
 		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -timescale 1ps/1ps worklib.tb_top
 	endif
 

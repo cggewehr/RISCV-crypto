@@ -17,9 +17,9 @@ check_timing_intent -verbose
 
 ## 3) synthesize
 # set_db auto_ungroup none
-syn_generic
-syn_map
-syn_opt
+syn_generic -create_floorplan -physical
+syn_map -physical
+syn_opt;# -incremental
 
 ## 4) write reports & netlist
 report area          > deliverables/rpt_area.txt

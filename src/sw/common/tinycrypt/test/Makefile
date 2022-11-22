@@ -25,44 +25,45 @@ clean:
 
 # Dependencies
 test_aes$(DOTEXE): test_aes.o  aes_encrypt.o aes_decrypt.o utils.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+#	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_cbc_mode$(DOTEXE): test_cbc_mode.o cbc_mode.o \
 		aes_encrypt.o aes_decrypt.o utils.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_ctr_mode$(DOTEXE): test_ctr_mode.o ctr_mode.o \
 		aes_encrypt.o utils.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_ctr_prng$(DOTEXE): test_ctr_prng.o ctr_prng.o \
 		aes_encrypt.o utils.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_cmac_mode$(DOTEXE): test_cmac_mode.o aes_encrypt.o utils.o \
 		cmac_mode.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_ccm_mode$(DOTEXE): test_ccm_mode.o aes_encrypt.o \
 		utils.o ccm_mode.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_hmac$(DOTEXE): test_hmac.o  hmac.o sha256.o utils.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_hmac_prng$(DOTEXE): test_hmac_prng.o hmac_prng.o hmac.o \
 		sha256.o utils.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_sha256$(DOTEXE): test_sha256.o sha256.o utils.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_ecc_dh$(DOTEXE): test_ecc_dh.o ecc.o ecc_dh.o test_ecc_utils.o ecc_platform_specific.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 test_ecc_dsa$(DOTEXE): test_ecc_dsa.o ecc.o utils.o ecc_dh.o \
 		ecc_dsa.o sha256.o test_ecc_utils.o ecc_platform_specific.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.o) $(LINKERFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 
 -include $(TEST_DEPS)
