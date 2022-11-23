@@ -42,6 +42,7 @@ def MakeSimArea(DirName):
         makefile.write(f"COMMON_DIR={RootPath + '/src/sw/common'}\n")
         makefile.write(f"VENDOR?=Cadence\n")
         makefile.write(f"PROG?=hello_test\n")
+        makefile.write(f"export PROG\n")
         makefile.write(f"include ${{ROOT_PATH}}/scripts/sim_common.mk\n")
 
     # Create default parameter file in sim area

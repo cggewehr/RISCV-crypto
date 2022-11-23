@@ -105,9 +105,11 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
             // a3: Pointer to s.leftover[]
             // a4: Temp for load/store and branches
             // a5: s.leftover_offset
+
+            // TODO: Save return address to stack
     
             // a0 already points to s.iv, no additional arguments are required
-            "jal sha256_init_asm  \n"
+            "jal x1, sha256_init_asm  \n"
 
             "lw a5, 104(a0)  \n"  // a5 now contains s.leftover_offset
             "addi a3, a0, 40  \n"
