@@ -1,6 +1,6 @@
-sha256_pkg.sv
-sha256_unit.sv
+sha2_pkg.sv
 ibex_pkg.sv
+sha2_unit.sv
 ibex_alu.sv
 ibex_compressed_decoder.sv
 ibex_controller.sv

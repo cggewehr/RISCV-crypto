@@ -423,6 +423,12 @@ module ibex_tracer (
         rvfi_rs2_addr);
   endfunction
 
+  function automatic void decode_aes_insn(input string mnemonic);
+    data_accessed = RS1 | RS2 | RD;
+    decoded_str = $sformatf("%s\tx%0d,x%0d,x%0d,%0d", mnemonic, rvfi_rd_addr, rvfi_rs1_addr,
+        rvfi_rs2_addr, rvfi_insn[31:30]);
+  endfunction
+
   function automatic void decode_r1_insn(input string mnemonic);
     data_accessed = RS1 | RD;
     decoded_str = $sformatf("%s\tx%0d,x%0d", mnemonic, rvfi_rd_addr, rvfi_rs1_addr);
@@ -1063,6 +1069,22 @@ module ibex_tracer (
         INSN_CRC32C_B:   decode_r1_insn("crc32c.b");
         INSN_CRC32C_H:   decode_r1_insn("crc32c.h");
         INSN_CRC32C_W:   decode_r1_insn("crc32c.w");
+
+        // CRYPTO EXTENSIONS (Zkne, Zknh)
+        INSN_SHA256SIG0: decode_i_insn("sha256sig0");
+        INSN_SHA256SIG1: decode_i_insn("sha256sig1");
+        INSN_SHA256SUM0: decode_i_insn("sha256sum0");
+        INSN_SHA256SUM1: decode_i_insn("sha256sum1");
+
+        INSN_SHA512SIG0H: decode_r_insn("sha512sig0h");
+        INSN_SHA512SIG0L: decode_r_insn("sha512sig0l");
+        INSN_SHA512SIG1H: decode_r_insn("sha512sig1h");
+        INSN_SHA512SIG1L: decode_r_insn("sha512siglh");
+        INSN_SHA512SUM0R: decode_r_insn("sha512sum0r");
+        INSN_SHA512SUM1R: decode_r_insn("sha512sum1r");
+    
+        INSN_AES32ESI: decode_aes_insn("aes32esi");
+        INSN_AES32ESMI: decode_aes_insn("aes32esmi");
 
         default:         decode_mnemonic("INVALID");
       endcase

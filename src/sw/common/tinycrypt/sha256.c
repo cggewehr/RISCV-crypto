@@ -107,6 +107,8 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
             // a5: s.leftover_offset
 
             // TODO: Save return address to stack
+            "addi sp, sp, -4 \n"
+            "sw x1, 0(sp)  \n"
     
             // a0 already points to s.iv, no additional arguments are required
             "jal x1, sha256_init_asm  \n"
@@ -140,7 +142,7 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
                 "sw a1, -4(sp)  \n"
                 
                 // Compress current message block
-                "jal sha256_compress_asm  \n"
+                "jal x1, sha256_compress_asm  \n"
                 
                 "lw a1, -4(sp)  \n"
                 
@@ -151,7 +153,10 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
             
                 // Commit leftover offset to memory and return
                 "sw a5, 104(a0)  \n"
-                "jal sha256_finish_asm  \n"
+                "jal x1, sha256_finish_asm  \n"
+                "lw x1, 0(sp)  \n"
+                "addi sp, sp, 4  \n"
+                "jr x1  \n"
 
         :: "r" (s), "r" (data):);
         

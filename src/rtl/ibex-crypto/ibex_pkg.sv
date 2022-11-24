@@ -653,7 +653,9 @@ package ibex_pkg;
   parameter fetch_enable_t FetchEnableOff = 4'b1010;
   
   // CRYPTO EXTENSIONS
-  import sha2_pkg::*;
-  export sha2_pkg::*;
+  //`define ROTR(x, n) ($bits(x)'(x >> n) | $bits(x)'(x << 32 - n))
+  `define ROTR(x, n) ($bits(x)'(x >> n) | $bits(x)'(x << ($bits(x) - n)))
+
+  typedef enum {SIG0, SIG1, SUM0, SUM1, SIG0H, SIG0L, SIG1H, SIG1L, SUM0R, SUM1R} sha2_op_t;
   
 endpackage

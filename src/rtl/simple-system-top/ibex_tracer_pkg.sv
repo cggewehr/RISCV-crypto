@@ -332,4 +332,20 @@ package ibex_tracer_pkg;
   parameter logic [15:0] INSN_CJR        = { 3'b100, 1'b0,        5'h0,  5'h0,       {OPCODE_C2} };
   parameter logic [15:0] INSN_CJALR      = { 3'b100, 1'b1,        5'h?,  5'h0,       {OPCODE_C2} };
 
+  // CRYPTO EXTENSIONS (Zknh, Zkne)
+  parameter logic [31:0] INSN_SHA256SIG0  = { 12'b000100000010, 5'h?, 3'b001, 5'h?, {OPCODE_OP_IMM} };
+  parameter logic [31:0] INSN_SHA256SIG1  = { 12'b000100000011, 5'h?, 3'b001, 5'h?, {OPCODE_OP_IMM} };
+  parameter logic [31:0] INSN_SHA256SUM0  = { 12'b000100000000, 5'h?, 3'b001, 5'h?, {OPCODE_OP_IMM} };
+  parameter logic [31:0] INSN_SHA256SUM1  = { 12'b000100000001, 5'h?, 3'b001, 5'h?, {OPCODE_OP_IMM} };
+
+  parameter logic [31:0] INSN_SHA512SIG0H = { 7'b0101110, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  parameter logic [31:0] INSN_SHA512SIG0L = { 7'b0101010, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  parameter logic [31:0] INSN_SHA512SIG1H = { 7'b0101111, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  parameter logic [31:0] INSN_SHA512SIG1L = { 7'b0101011, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  parameter logic [31:0] INSN_SHA512SUM0R = { 7'b0101000, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  parameter logic [31:0] INSN_SHA512SUM1R = { 7'b0101001, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+    
+  parameter logic [31:0] INSN_AES32ESI    = { 2'h?, 5'b10001, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  parameter logic [31:0] INSN_AES32ESMI   = { 2'h?, 5'b10011, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  
 endpackage

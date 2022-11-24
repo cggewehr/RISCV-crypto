@@ -99,12 +99,7 @@ module ibex_decoder #(
 
   // jump/branches
   output logic                 jump_in_dec_o,         // jump is being calculated in ALU
-  output logic                 branch_in_dec_o,
-  
-  // CRYPTO EXTENSION
-  output logic                 sha2_en_o,
-  output sha2_pkg::SHA2_op_t   sha2_op_o
-  // TODO: AES
+  output logic                 branch_in_dec_o
   
 );
 
@@ -408,6 +403,18 @@ module ibex_decoder #(
                   default: illegal_insn = 1'b1;
                 endcase
               end
+              5'b00010: begin  // CRYPTO EXTENSIONS (SHA256)
+
+                sha2_en_o = (instr[26:22] == 5'b00000);
+        
+                unique case (instr[26:20])
+                  7'b000_0010: sha2_op_o = SIG0;                                       // sha256sig0
+                  7'b000_0011: sha2_op_o = SIG1;                                       // sha256sig1
+                  7'b000_0000: sha2_op_o = SUM0;                                       // sha256sum0
+                  7'b000_0001: sha2_op_o = SUM1;                                       // sha256sum1
+                  default: illegal_insn = 1'b1;
+                endcase
+              end
               default : illegal_insn = 1'b1;
             endcase
           end
@@ -470,37 +477,23 @@ module ibex_decoder #(
         if ({instr[26], instr[13:12]} == {1'b1, 2'b01}) begin
           illegal_insn = (RV32B != RV32BNone) ? 1'b0 : 1'b1; // cmix / cmov / fsl / fsr
         
-        // CRYPTO EXTENSION
-        end else if ({instr[31:25], instr[14:12]} == {7'b000_1000, 3'b001}) begin  // SHA256 instructions
-        
-          sha2_en_o = 1'b1;
-        
-          unique case (instr[24:20])
-          
-            5'b00010: sha2_op_o = SIG0;
-            5'b00011: sha2_op_o = SIG1;
-            5'b00000: sha2_op_o = SUM0;
-            5'b00001: sha2_op_o = SUM1;
-            default: illegal_insn = 1'b1;
-
-          endcase
-
-        end else if ({instr[31:28], instr[14:12]} == {4'b0101, 3'b000}) begin  // SHA512 instructions
+        // CRYPTO EXTENSION (SHA512 instructions)
+        end else if ({instr[31:28], instr[14:12]} == {4'b0101, 3'b000}) begin
 
           sha2_en_o = 1'b1;
 
           unique case (instr[27:25])
           
-            3'b110: sha2_op_o = SIG0H;
-            3'b010: sha2_op_o = SIG0L;
-            3'b111: sha2_op_o = SIG1H;
-            3'b011: sha2_op_o = SIG1L;
-            3'b000: sha2_op_o = SUM0R;
-            3'b001: sha2_op_o = SUM1R;
+            3'b110: sha2_op_o = SIG0H;  // sha512sig0h
+            3'b010: sha2_op_o = SIG0L;  // sha512sig0l
+            3'b111: sha2_op_o = SIG1H;  // sha512sig1h
+            3'b011: sha2_op_o = SIG1L;  // sha512sig1l
+            3'b000: sha2_op_o = SUM0R;  // sha512sum0r
+            3'b001: sha2_op_o = SUM1R;  // sha512sum1r
 
           endcase
           
-        // TODO: AES instructions
+        // TODO: AES instructions (also are R-type)
 
         end else begin
           unique case ({instr[31:25], instr[14:12]})
