@@ -40,11 +40,11 @@
 #else
     void sha256_init_asm(unsigned int *iv);
     void sha256_compress_asm(unsigned int *dummy, uint8_t* data);
-    void sha256_finish_asm(void);
+    void sha256_finish_asm(unsigned int *iv);
     #define SHA256_COMPRESS(a, b) \
         sha256_init_asm(a); \
         sha256_compress_asm(a, b); \
-        sha256_finish_asm();
+        sha256_finish_asm(a);
 #endif
 
 int tc_sha256_init(TCSha256State_t s)
@@ -75,15 +75,16 @@ int tc_sha256_init(TCSha256State_t s)
 
 int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
 {
-	/* input sanity check: */
-	if (s == (TCSha256State_t) 0 ||
-	    data == (void *) 0) {
-		return TC_CRYPTO_FAIL;
-	} else if (datalen == 0) {
-		return TC_CRYPTO_SUCCESS;
-	}
-
     #ifndef SHA256_RISCV_ASM
+
+	    /* input sanity check: */
+	    if (s == (TCSha256State_t) 0 ||
+	        data == (void *) 0) {
+	    	return TC_CRYPTO_FAIL;
+	    } else if (datalen == 0) {
+	    	return TC_CRYPTO_SUCCESS;
+	    }
+
     
         while (datalen-- > 0) {
             s->leftover[s->leftover_offset++] = *(data++);
@@ -106,8 +107,20 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
             // a4: Temp for load/store and branches
             // a5: s.leftover_offset
 
-            // TODO: Save return address to stack
-            "addi sp, sp, -4 \n"
+            // Input sanity check
+            #define xstr(s) str(s)
+            #define str(s) #s
+            "c.mv a5, a0  \n"
+            "li a0, " xstr(TC_CRYPTO_FAIL) "  \n"
+            "c.beqz a0, sha256_update_return  \n"
+            "c.beqz a1, sha256_update_return  \n"
+            "li a0, " xstr(TC_CRYPTO_SUCCESS) "  \n"
+            "c.beqz a2, sha256_update_return  \n"
+            "c.mv a0, a5  \n"
+            #undef str
+            #undef xstr
+
+            "addi sp, sp, -4  \n"
             "sw x1, 0(sp)  \n"
     
             // a0 already points to s.iv, no additional arguments are required
@@ -127,24 +140,35 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
                 "c.sw a4, 0(a3)  \n"
                 "c.addi a1, 4  \n"
                 "c.addi a3, 4  \n"
+                "c.addi a5, 1  \n"
                 
                 // if (s->leftover_offset >= TC_SHA256_BLOCK_SIZE)
-                "slti a4, a4, 512  \n"
-                "bne a4, x0, sha256_update_top_loop  \n"
+                "slti a4, a5, 512  \n"
+                "c.bnez a4, sha256_update_top_loop  \n"
                 
                 // Increment s.bits_hashed by (TC_SHA256_BLOCK_SIZE << 3) and reset s.leftover_offset
                 "c.lw a4, 8(a0)  \n"  // Compressed L/S shifts offset to the left by 2
                 "addi a4, a4, 512  \n"
                 "c.sw a4, 8(a0)  \n"  // Compressed L/S shifts offset to the left by 2
-                "c.xor a5, a5  \n"
 
-                // Save to stack a1
+                // Save to stack a1, a2, a3, a4 and a5 (are modified within sha256_compress_asm())
+                "addi sp, sp, -20  \n"
                 "sw a1, -4(sp)  \n"
+                "sw a2, -8(sp)  \n"
+                "sw a3, -12(sp)  \n"
+                "sw a4, -16(sp)  \n"
+                "sw a5, -20(sp)  \n"
+                "c.mv a1, a3  \n"
                 
-                // Compress current message block
+                // Compress current message block (stored in s.leftover[])
                 "jal x1, sha256_compress_asm  \n"
                 
                 "lw a1, -4(sp)  \n"
+                "lw a2, -8(sp)  \n"
+                "lw a3, -12(sp)  \n"
+                "lw a4, -16(sp)  \n"
+                "lw a5, -20(sp)  \n"
+                "addi sp, sp, 20  \n"
                 
                 "j sha256_update_top_loop  \n"
 
@@ -155,10 +179,13 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
                 "sw a5, 104(a0)  \n"
                 "jal x1, sha256_finish_asm  \n"
                 "lw x1, 0(sp)  \n"
+                "c.mv x1, x1  \n" // TODO: DEBUG REMOVE
                 "addi sp, sp, 4  \n"
-                "jr x1  \n"
+                "ret  \n"
 
-        :: "r" (s), "r" (data):);
+            "sha256_update_return:  \n"
+
+        :"=r" (datalen): "r" (s), "r" (data):);
         
     #endif
 
@@ -392,9 +419,8 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
         // Init t0 to round counter (0 < i < 64) and inits constants
         "mv t0, x0  \n"
         "li t4, 0x3f  \n"
-        //"la sp, k256  \n"
-        "mv sp, a3  \n"
-        //"la a4, workspace  \n"
+        "c.mv t2, sp  \n"
+        "c.mv sp, a3  \n"
         "c.mv t5, a4  \n"
 
         // Init state variables from running hash value
@@ -445,8 +471,10 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "c.or a4, a5  \n"
 
                 // W[i] <= data[i]
+                "c.mv a5, t5  \n"
+                "c.add a5, t0  \n"
+                "c.sw a4, 0(a5)  \n"
                 "c.mv a4, t5  \n"
-                "c.sw a2, 0(a4)  \n"
 
                 // Increment pointer to data[i]
                 "c.addi a1, 4  \n"
@@ -458,7 +486,7 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
             "sha256_compress_compute_new_W:  \n"
 
                 // Get a2 = W[i+1 & 0xF] (equivalent to W[i-15])
-                "c.mv t0, a5  \n"
+                "c.mv a5, t0  \n"
                 "c.addi a5, 4  \n"  // (1 << 2)
                 "c.andi a5, 0xF  \n"
                 "c.add a5, a4  \n"
@@ -468,7 +496,7 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "sha256sig0 a2, a2  \n"
 
                 // Get a3 = W[i+14 & 0xF] (equivalent to W[i-2])
-                "c.mv t0, a5  \n"
+                "c.mv a5, t0  \n"
                 "addi a5, a5, 56  \n"  // (14 << 2)
                 "and a5, a5, t4  \n"
                 "c.add a5, a4  \n"
@@ -487,7 +515,7 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "c.add a2, a3  \n"
 
                 // Get a3 = W[i+9 & 0xF]  (equivalent to W[i-7])  \n"
-                "c.mv t0, a5  \n"
+                "c.mv a5, t0  \n"
                 "addi a5, a5, 36  \n"  // (9 << 2)
                 "and a5, a5, t4  \n"
                 "c.add a5, a4  \n"
@@ -497,7 +525,9 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "c.add a2, a3  \n"
 
                 // W[i] = a2 (Saves newly computed schedule word to message schedule)
-                "c.sw a2, 0(a4)  \n"
+                "and a3, t4, t0  \n"
+                "c.add a3, a4  \n"
+                "c.sw a2, 0(a3)  \n"
 
             // a2 now contains W[i] (such that this is reused by both branches)
             "sha256_compress_compute_state:  \n"
@@ -541,7 +571,7 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
             // Increment counters and loop back to top_iter
             "c.addi t0, 4  \n"
             "c.addi sp, 4  \n"
-            "slti a3, t0, 64  \n"
+            "slti a3, t0, 256  \n"  // (64 << 2)
             "c.bnez a3, sha256_compress_iter_top  \n"
 
         // Add state vars to running state
@@ -560,11 +590,12 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
 }
 
 // Save final hash value to mem (given state[] array), restore S0~S11 and A0~A7 from stack
-void sha256_finish_asm(void) {
+void sha256_finish_asm(unsigned int *iv) {
 
     asm volatile (
 
         // Commit running hash value to state array
+        "c.mv t2, sp  \n"
         "c.mv sp, a0    \n"
         "c.swsp t3, 0(sp)   \n"
         "c.swsp t1, 4(sp)   \n"
@@ -576,16 +607,17 @@ void sha256_finish_asm(void) {
         "c.swsp a7, 28(sp)   \n"
 
         // Restore register state from stack
-        "c.lwsp s0, 0(sp)    \n"
-        "c.lwsp s1, 4(sp)    \n"
-        "c.lwsp s2, 8(sp)    \n"
-        "c.lwsp s3, 12(sp)    \n"
-        "c.lwsp s4, 16(sp)    \n"
-        "c.lwsp s5, 20(sp)    \n"
-        "c.lwsp s6, 24(sp)    \n"
-        "c.lwsp s7, 28(sp)    \n"
-        "c.lwsp s8, 32(sp)    \n"
-        "c.lwsp s9, 36(sp)    \n"
+        "c.mv sp, t2  \n"
+        "c.lwsp s0, 0(sp)  \n"
+        "c.lwsp s1, 4(sp)  \n"
+        "c.lwsp s2, 8(sp)  \n"
+        "c.lwsp s3, 12(sp)  \n"
+        "c.lwsp s4, 16(sp)  \n"
+        "c.lwsp s5, 20(sp)  \n"
+        "c.lwsp s6, 24(sp)  \n"
+        "c.lwsp s7, 28(sp)  \n"
+        "c.lwsp s8, 32(sp)  \n"
+        "c.lwsp s9, 36(sp)  \n"
         "c.lwsp s10, 40(sp)  \n"
         "c.lwsp s11, 44(sp)  \n"
         "c.lwsp a0, 48(sp)   \n"
@@ -596,8 +628,8 @@ void sha256_finish_asm(void) {
         "c.lwsp a5, 68(sp)   \n"
         "c.lwsp a6, 72(sp)   \n"
         "c.lwsp a7, 76(sp)   \n"
-        "addi sp, sp, 76   \n"
+        "addi sp, sp, 76  \n"
 
-    :::);
+    ::"r" (iv):);
 }
 #endif
