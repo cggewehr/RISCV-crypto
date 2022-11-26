@@ -9,6 +9,9 @@ module sha2_unit import ibex_pkg::*; (
 
 );
 
+  //`define ROTR(x, n) ($bits(x)'(x >> n) | $bits(x)'(x << 32 - n))
+  `define ROTR(x, n) ($bits(x)'(x >> n) | $bits(x)'(x << ($bits(x) - n)))
+
   always_comb begin
 
     if (sha2_en_i) begin
@@ -19,7 +22,18 @@ module sha2_unit import ibex_pkg::*; (
         SIG0: sha2_result_o = `ROTR(op_a_i, 7) ^ `ROTR(op_a_i, 18) ^ (op_a_i >> 3);
         SIG1: sha2_result_o = `ROTR(op_a_i, 17) ^ `ROTR(op_a_i, 19) ^ (op_a_i >> 10);
         SUM0: sha2_result_o = `ROTR(op_a_i, 2) ^ `ROTR(op_a_i, 13) ^ `ROTR(op_a_i, 22);
-        SUM1: sha2_result_o = `ROTR(op_a_i, 6) ^ `ROTR(op_a_i, 11) ^ `ROTR(op_a_i, 25);
+        //SUM1: sha2_result_o = `ROTR(op_a_i, 6) ^ `ROTR(op_a_i, 11) ^ `ROTR(op_a_i, 25);
+        SUM1: begin
+          sha2_result_o = `ROTR(op_a_i, 6) ^ `ROTR(op_a_i, 11) ^ `ROTR(op_a_i, 25);
+          $display("%032b", op_a_i);
+          $display("%032b", `ROTR(op_a_i, 6));
+          $display("%032b", `ROTR(op_a_i, 11));
+          $display("%032b", `ROTR(op_a_i, 25));
+          //$display("%032b", 32'ha54ff53a);
+          //$display("%032b", `ROTR(32'ha54ff53a, 6));
+          //$display("%032b", `ROTR(32'ha54ff53a, 11));
+          //$display("%032b", `ROTR(32'ha54ff53a, 25));
+        end
 
         // SHA512 instructions
         SIG0H: sha2_result_o = (op_a_i >> 1) ^ (op_a_i >> 7) ^ (op_a_i >> 8) ^ (op_b_i << 31) ^ (op_b_i << 24);
@@ -36,5 +50,8 @@ module sha2_unit import ibex_pkg::*; (
     end
 
   end
+
+  always @ (sha2_result_o)
+      $display("SHA256: OP: <%s> A: <%08h> B: <%08h> RESULT: <%08h>", sha2_op_i.name(), op_a_i, op_b_i, sha2_result_o);
 
 endmodule

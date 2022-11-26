@@ -35,16 +35,25 @@
 #include <tinycrypt/utils.h>
 
 #ifndef SHA256_RISCV_ASM
+
     static void compress(unsigned int *iv, const uint8_t *data);
     #define SHA256_COMPRESS(a, b) compress(a, b)
+
 #else
+
     void sha256_init_asm(unsigned int *iv);
     void sha256_compress_asm(unsigned int *dummy, uint8_t* data);
     void sha256_finish_asm(unsigned int *iv);
+
     #define SHA256_COMPRESS(a, b) \
-        sha256_init_asm(a); \
-        sha256_compress_asm(a, b); \
-        sha256_finish_asm(a);
+        register unsigned int* iv_ptr asm ("a0") = &(a);\
+        register uint8_t* leftover_ptr asm ("a1") = &(b);\
+        asm volatile ( \
+            "jal x1, sha256_init_asm  \n" \
+            "jal x1, sha256_compress_asm  \n" \
+            "jal x1, sha256_finish_asm  \n" \
+        ::"r" (iv_ptr), "r" (leftover_ptr):);
+
 #endif
 
 int tc_sha256_init(TCSha256State_t s)
@@ -112,7 +121,7 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
             #define str(s) #s
             "c.mv a5, a0  \n"
             "li a0, " xstr(TC_CRYPTO_FAIL) "  \n"
-            "c.beqz a0, sha256_update_return  \n"
+            "c.beqz a5, sha256_update_return  \n"
             "c.beqz a1, sha256_update_return  \n"
             "li a0, " xstr(TC_CRYPTO_SUCCESS) "  \n"
             "c.beqz a2, sha256_update_return  \n"
@@ -135,11 +144,13 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
                 "c.addi a2, -1  \n"
             
                 // Copies data[] into s.leftover[]
+                // TODO: Optimize to move 4 bytes at a time
+                // TODO: Maybe do big-endian conversion here instead of within sha256_compress_asm()
                 // s->leftover[s->leftover_offset++] = *(data++);
-                "c.lw a4, 0(a1)  \n"
-                "c.sw a4, 0(a3)  \n"
-                "c.addi a1, 4  \n"
-                "c.addi a3, 4  \n"
+                "lbu a4, 0(a1)  \n"
+                "sb a4, 0(a3)  \n"
+                "c.addi a1, 1  \n"
+                "c.addi a3, 1  \n"
                 "c.addi a5, 1  \n"
                 
                 // if (s->leftover_offset >= TC_SHA256_BLOCK_SIZE)
@@ -153,21 +164,21 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
 
                 // Save to stack a1, a2, a3, a4 and a5 (are modified within sha256_compress_asm())
                 "addi sp, sp, -20  \n"
-                "sw a1, -4(sp)  \n"
-                "sw a2, -8(sp)  \n"
-                "sw a3, -12(sp)  \n"
-                "sw a4, -16(sp)  \n"
-                "sw a5, -20(sp)  \n"
+                "sw a1, 0(sp)  \n"
+                "sw a2, 4(sp)  \n"
+                "sw a3, 8(sp)  \n"
+                "sw a4, 12(sp)  \n"
+                "sw a5, 16(sp)  \n"
                 "c.mv a1, a3  \n"
                 
                 // Compress current message block (stored in s.leftover[])
                 "jal x1, sha256_compress_asm  \n"
                 
-                "lw a1, -4(sp)  \n"
-                "lw a2, -8(sp)  \n"
-                "lw a3, -12(sp)  \n"
-                "lw a4, -16(sp)  \n"
-                "lw a5, -20(sp)  \n"
+                "lw a1, 0(sp)  \n"
+                "lw a2, 4(sp)  \n"
+                "lw a3, 8(sp)  \n"
+                "lw a4, 12(sp)  \n"
+                "lw a5, 16(sp)  \n"
                 "addi sp, sp, 20  \n"
                 
                 "j sha256_update_top_loop  \n"
@@ -179,10 +190,10 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
                 "sw a5, 104(a0)  \n"
                 "jal x1, sha256_finish_asm  \n"
                 "lw x1, 0(sp)  \n"
-                "c.mv x1, x1  \n" // TODO: DEBUG REMOVE
                 "addi sp, sp, 4  \n"
                 "ret  \n"
 
+            // Returns to caller with previously generated return value in a0 (TC_CRYPTO_FAIL or TC_CRYPTO_SUCCESS)
             "sha256_update_return:  \n"
 
         :"=r" (datalen): "r" (s), "r" (data):);
@@ -335,7 +346,7 @@ void sha256_init_asm(unsigned int *iv) {
     asm volatile (
 
         // Save regs to stack
-        "addi sp, sp, -76  \n"
+        "addi sp, sp, -80  \n"
         "c.swsp s0, 0(sp)  \n"
         "c.swsp s1, 4(sp)  \n"
         "c.swsp s2, 8(sp)  \n"
@@ -384,7 +395,7 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
     // REG TABLE
 
     // a0: Pointer to running state (not used, but necessary to caller control logic, shouldn't be modified)
-    // a1: Pointer to message block
+    // a1: Pointer to message block (s.leftover)
     // a2: throwaway temp
     // a3: Data from compressed load/store & throwaway temp
     // a4: Pointer to workspace[] (Used for compressed load/store)
@@ -451,10 +462,11 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 // Convert data[i] to big-endian
                 "li a3, 0xFF  \n"
 
-                "and a5, a3, a2  \n"
-                "c.slli a5, 24  \n"
+                //"and a5, a3, a2  \n"
+                "and a4, a3, a2  \n"
+                "c.slli a4, 24  \n"
                 "c.slli a3, 8  \n"
-                "c.or a4, a5  \n"
+                //"c.or a4, a5  \n"
 
                 "and a5, a3, a2  \n"
                 "c.slli a5, 8  \n"
@@ -467,7 +479,7 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "c.or a4, a5  \n"
 
                 "and a5, a3, a2  \n"
-                "c.srli a5, 25  \n"
+                "c.srli a5, 24  \n"
                 "c.or a4, a5  \n"
 
                 // W[i] <= data[i]
@@ -488,7 +500,7 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 // Get a2 = W[i+1 & 0xF] (equivalent to W[i-15])
                 "c.mv a5, t0  \n"
                 "c.addi a5, 4  \n"  // (1 << 2)
-                "c.andi a5, 0xF  \n"
+                "and a5, a5, t4  \n"
                 "c.add a5, a4  \n"
                 "c.lw a2, 0(a5)  \n"
 
@@ -597,14 +609,14 @@ void sha256_finish_asm(unsigned int *iv) {
         // Commit running hash value to state array
         "c.mv t2, sp  \n"
         "c.mv sp, a0    \n"
-        "c.swsp t3, 0(sp)   \n"
-        "c.swsp t1, 4(sp)   \n"
-        "c.swsp s8, 8(sp)   \n"
-        "c.swsp s9, 12(sp)   \n"
-        "c.swsp s10, 16(sp)  \n"
-        "c.swsp s11, 20(sp)  \n"
-        "c.swsp a6, 24(sp)   \n"
-        "c.swsp a7, 28(sp)   \n"
+        "c.swsp a7, 0(sp)   \n"
+        "c.swsp a6, 4(sp)   \n"
+        "c.swsp s11, 8(sp)   \n"
+        "c.swsp s10, 12(sp)   \n"
+        "c.swsp s9, 16(sp)  \n"
+        "c.swsp s8, 20(sp)  \n"
+        "c.swsp t1, 24(sp)   \n"
+        "c.swsp t3, 28(sp)   \n"
 
         // Restore register state from stack
         "c.mv sp, t2  \n"
@@ -628,7 +640,7 @@ void sha256_finish_asm(unsigned int *iv) {
         "c.lwsp a5, 68(sp)   \n"
         "c.lwsp a6, 72(sp)   \n"
         "c.lwsp a7, 76(sp)   \n"
-        "addi sp, sp, 76  \n"
+        "addi sp, sp, 80  \n"
 
     ::"r" (iv):);
 }

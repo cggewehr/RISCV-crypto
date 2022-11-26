@@ -1,4 +1,3 @@
-sha2_pkg.sv
 ibex_pkg.sv
 sha2_unit.sv
 ibex_alu.sv
