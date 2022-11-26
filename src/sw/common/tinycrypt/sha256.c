@@ -154,21 +154,23 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
                 "c.addi a5, 1  \n"
                 
                 // if (s->leftover_offset >= TC_SHA256_BLOCK_SIZE)
-                "slti a4, a5, 512  \n"
+                "slti a4, a5, 64  \n"
                 "c.bnez a4, sha256_update_top_loop  \n"
                 
-                // Increment s.bits_hashed by (TC_SHA256_BLOCK_SIZE << 3) and reset s.leftover_offset
-                "c.lw a4, 8(a0)  \n"  // Compressed L/S shifts offset to the left by 2
+                // Increment s.bits_hashed by (TC_SHA256_BLOCK_SIZE << 3)
+                "c.lw a4, 32(a0)  \n"
                 "addi a4, a4, 512  \n"
-                "c.sw a4, 8(a0)  \n"  // Compressed L/S shifts offset to the left by 2
+                "c.sw a4, 32(a0)  \n"
+
+                // a3 now points to s.leftover[0]
+                "addi a3, a3, -64  \n"  
 
                 // Save to stack a1, a2, a3, a4 and a5 (are modified within sha256_compress_asm())
-                "addi sp, sp, -20  \n"
+                "addi sp, sp, -16  \n"
                 "sw a1, 0(sp)  \n"
                 "sw a2, 4(sp)  \n"
                 "sw a3, 8(sp)  \n"
                 "sw a4, 12(sp)  \n"
-                "sw a5, 16(sp)  \n"
                 "c.mv a1, a3  \n"
                 
                 // Compress current message block (stored in s.leftover[])
@@ -178,8 +180,8 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
                 "lw a2, 4(sp)  \n"
                 "lw a3, 8(sp)  \n"
                 "lw a4, 12(sp)  \n"
-                "lw a5, 16(sp)  \n"
-                "addi sp, sp, 20  \n"
+                "c.li a5, 0  \n"  // Reset s.leftover_offset to 0
+                "addi sp, sp, 16  \n"
                 
                 "j sha256_update_top_loop  \n"
 
