@@ -444,8 +444,8 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
         "c.mv s6, a6  \n"
         "c.mv s7, a7  \n"
 
-        // t6 <= (A and B) from first iteration, used in computing MAJ(A, B, C)
-        "and t6, a6, a7  \n"
+        // t6 <= (B and C) from first iteration, used in computing MAJ(A, B, C)
+        "and t6, s5, s6\n"
 
         "sha256_compress_iter_top:  \n"
 
@@ -481,11 +481,12 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "and a5, a3, a2  \n"
                 "c.srli a5, 24  \n"
                 "c.or a4, a5  \n"
+                "c.mv a2, a4  \n"
 
                 // W[i] <= data[i]
                 "c.mv a5, t5  \n"
                 "c.add a5, t0  \n"
-                "c.sw a4, 0(a5)  \n"
+                "c.sw a2, 0(a5)  \n"
                 "c.mv a4, t5  \n"
 
                 // Increment pointer to data[i]
@@ -521,7 +522,10 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "c.add a2, a3  \n"
 
                 // Get a5 = W[i] (will be replaced in this iteration)  (equivalent to W[i-16])
-                "c.lw a3, 0(a4)  \n"
+                "c.mv a5, t0  \n"
+                "and a5, a5, t4  \n"
+                "c.add a5, a4  \n"
+                "c.lw a3, 0(a5)  \n"
 
                 // a2 = a2 + a3  (a2 now contains Sig0(W[i-2]) + Sig1(W[i-14] + W[i-16]))
                 "c.add a2, a3  \n"
@@ -557,13 +561,13 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "c.mv s2, s3  \n"  // s2 now contains E
                 
                 // Compute CH(E, F, G)
-                "and a5, s1, s2  \n"
-                "xori s4, s4, -1  \n"
-                "and a3, s0, s4  \n"
+                "and a5, s1, s2  \n"   // a5 <= E and F
+                "xori s3, s3, -1  \n"  // s3 <= not E
+                "and a3, s0, s3  \n"   // s3 <= (not E) and G
                 "c.xor a5, a3  \n"  // a5 now contains CH(E, F, G)
-                "c.add a2, a5  \n"  // a2 not contains W[i] + Sum1(E) + K[i] + CH(E, F, G) + H (contains <t1> SHA-256 variable)
+                "c.add a2, a5  \n"  // a2 now contains W[i] + Sum1(E) + K[i] + CH(E, F, G) + H (<t1> SHA-256 variable)
                 
-                "add s3, s4, a5  \n"  // s3 now contains new E. At this point state variables H, G, F and E have been updated
+                "add s3, s4, a2  \n"  // s3 now contains new E. At this point state variables H, G, F and E have been updated
                 
                 // Updates D, C, and B variables, freeing up s7 (current A) register for temp use
                 "c.mv s4, s5  \n"  // s4 now contains C
@@ -573,10 +577,13 @@ void sha256_compress_asm(unsigned int *dummy, uint8_t* data) {
                 "sha256sum0 s7, s7  \n"  // s7 <= Sum0(A)
                 
                 // Compute MAJ(A, B, C)
-                "and a5, s4, s6  \n"
-                "xor a5, a5, t6  \n"
-                "and t6, s5, s6  \n"
-                "xor a5, a5, t6  \n"  // At this point a5 contains SHA-256 variable <t2>
+                "and a5, s4, s6  \n"  // a5 <= A and C
+                "xor a5, a5, t6  \n"  // a5 <= (A and C) xor (B and C) (Reuses A and B from previous iteration)
+                "and t6, s5, s6  \n"  // t6 <= (A and B) (Equivalent to B and C in next iteration)
+                "xor a5, a5, t6  \n"  // a5 <= (A and C) xor (B and C) xor (A and B)
+
+                // Finish computing variable <t2>
+                "c.add a5, s7  \n"
                 
                 "add s7, a2, a5  \n"  // A <= <t1> + <t2>, this finishes updating all state vars for this iteration
 
