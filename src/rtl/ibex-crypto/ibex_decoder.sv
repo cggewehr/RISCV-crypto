@@ -83,7 +83,9 @@ module ibex_decoder #(
   // CRYPTO EXTENSIONS
   output logic                 sha2_en_o,
   output ibex_pkg::sha2_op_t   sha2_op_o,
-  // TODO: AES EXTENSIONS
+  output logic                 aes_en_o,
+  output logic                 aes_mix_o,
+  output logic[1:0]            aes_bs_o,
 
   // CSRs
   output logic                 csr_access_o,          // access to CSR
@@ -226,9 +228,12 @@ module ibex_decoder #(
     csr_illegal           = 1'b0;
     csr_op                = CSR_OP_READ;
     
-    // CRYPTO EXTENSION
+    // CRYPTO EXTENSIONS
     sha2_en_o             = 1'b0;
     sha2_op_o             = SIG0;
+    aes_en_o              = 1'b0;
+    aes_mix_o             = 1'b1;
+    aes_bs_o              = 2'b00;
 
     data_we_o             = 1'b0;
     data_type_o           = 2'b00;
@@ -477,7 +482,7 @@ module ibex_decoder #(
         if ({instr[26], instr[13:12]} == {1'b1, 2'b01}) begin
           illegal_insn = (RV32B != RV32BNone) ? 1'b0 : 1'b1; // cmix / cmov / fsl / fsr
         
-        // CRYPTO EXTENSION (SHA512 instructions)
+        // CRYPTO EXTENSIONS (SHA512 instructions)
         end else if ({instr[31:28], instr[14:12]} == {4'b0101, 3'b000}) begin
 
           sha2_en_o = 1'b1;
@@ -493,7 +498,12 @@ module ibex_decoder #(
 
           endcase
           
-        // TODO: AES instructions (also are R-type)
+        // CRYPTO EXTENSIONS (AES instructions)
+        end else if ({instr[29:25], instr[14:12]} =?= {5'b100?1, 3'b000}) begin  // aes32esmi or aes32esi
+        
+          aes_en_o = 1'b1;
+          aes_mix_o = instr[26];  // Do partial MixCollumns if aes32esmi
+          aes_bs_o = instr[31:30];
 
         end else begin
           unique case ({instr[31:25], instr[14:12]})

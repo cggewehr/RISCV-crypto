@@ -42,7 +42,9 @@ module ibex_ex_block #(
   // CRYPTO EXTENSIONS
   input logic                   sha2_en_i,
   input ibex_pkg::sha2_op_t     sha2_op_i,
-  // TODO: AES EXTENSIONS
+  input logic                   aes_en_i,
+  input logic                   aes_mix_i,
+  input logic[1:0]              aes_bs_i,
 
   // intermediate val reg
   output logic [1:0]            imd_val_we_o,
@@ -92,8 +94,9 @@ module ibex_ex_block #(
   assign alu_imd_val_q = '{imd_val_q_i[0][31:0], imd_val_q_i[1][31:0]};
 
   // assign result_ex_o  = multdiv_sel ? multdiv_result : alu_result;
-  assign result_ex_o  = multdiv_sel ? multdiv_result : 
-                        sha2_en_i   ? sha2_result    : alu_result;
+  assign result_ex_o  = multdiv_sel ? multdiv_result :
+                        sha2_en_i   ? sha2_result    :
+                        aes_en_i    ? aes_result     : alu_result;
 
   // branch handling
   assign branch_decision_o  = alu_cmp_result;
@@ -198,16 +201,31 @@ module ibex_ex_block #(
     );
   end
 
-  /////////////////////
-  // SHA2 EXTENSIONS //
-  /////////////////////
-  
+  ////////////////////
+  // SHA2 EXTENSION //
+  ////////////////////
+
   sha2_unit u_sha2_unit (
     .sha2_en_i(sha2_en_i),
     .sha2_op_i(sha2_op_i),
     .op_a_i(alu_operand_a_i),
     .op_b_i(alu_operand_b_i),
     .sha2_result_o(sha2_result)
+  );
+
+  ////////////////////
+  // AES EXTENSIONS //
+  ////////////////////
+
+  aes_unit #(
+    .LOGIC_GATING(1)
+  ) u_aes_unit (
+    .valid_in(aes_en_i),
+    .mix_in(aes_mix_i),
+    .rs1_in(alu_operand_a_i),
+    .rs2_in(alu_operand_b_i),
+    .bs_in(aes_bs_i),
+    .rd_out(aes_result)
   );
 
   // Multiplier/divider may require multiple cycles. The ALU output is valid in the same cycle

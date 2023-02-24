@@ -157,8 +157,10 @@ static inline void shift_rows(uint8_t *s)
 
 int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
 {
+    #ifndef AES_RISCV_ASM
 	uint8_t state[Nk*Nb];
 	unsigned int i;
+    #endif
 
 	if (out == (uint8_t *) 0) {
 		return TC_CRYPTO_FAIL;
@@ -168,6 +170,7 @@ int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
 		return TC_CRYPTO_FAIL;
 	}
 
+    #ifndef AES_RISCV_ASM
 	(void)_copy(state, sizeof(state), in, sizeof(state));
 	add_round_key(state, s->words);
 
@@ -186,6 +189,150 @@ int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
 
 	/* zeroing out the state buffer */
 	_set(state, TC_ZERO_BYTE, sizeof(state));
+    #else
+
+    // REG TABLE
+
+    // a0: Pointer to output buffer
+    // a1: Pointer to input buffer
+    // a2: Pointer to key schedule
+    // a3: Reserved
+    // a4: 1st column of current state in odd middle rounds
+    // a5: 2nd column of current state in odd middle rounds
+    // a6: 3rd column of current state in odd middle rounds
+    // a7: 4th column of current state in odd middle rounds
+
+    // t0: 1st column of current state in even middle rounds
+    // t1: 2nd column of current state in even middle rounds
+    // t2: 3rd column of current state in even middle rounds
+    // t3: 4th column of current state in even middle rounds
+    // t4: Decrementing round counter
+
+    register unsigned int* output_ptr asm("a0") = out;
+    register unsigned int* input_ptr asm("a1") = in;
+    register unsigned int* key_schedule_ptr asm("a2") = s.words;
+    register int i asm("t4") = Nr/2;
+
+    asm volatile (
+
+        "aes_encrypt_init: \n"
+
+            // Get first round key
+            "c.lw a4, 0(a2) \n"
+            "c.lw a5, 4(a2) \n"
+            "lw a6, 8(a2) \n"
+            "lw a7, 12(a2) \n"
+
+            // Init state as message block
+            "lw t0, 0(a1) \n"
+            "lw t1, 4(a1) \n"
+            "lw t2, 8(a1) \n"
+            "lw t3, 12(a1) \n"
+
+            // First AddRoundKey()
+            "xor a4, a4, t0 \n"
+            "xor a5, a5, t1 \n"
+            "xor a6, a6, t2 \n"
+            "xor a7, a7, t3 \n"
+
+            "j aes_encrypt_middle_even_round \n"
+
+        // Loop middle rounds from 0 to Nr - 1 (performs 2 iterations in the same loop)
+        "aes_encrypt_middle_odd_round: \n"
+
+            // Odd round (SubBytes() + MixColumns() + AddRoundKey())
+            "aes32esmi a4, a4, t0, 0 \n"
+            "aes32esmi a4, a4, t1, 1 \n"
+            "aes32esmi a4, a4, t2, 2 \n"
+            "aes32esmi a4, a4, t3, 3 \n"
+
+            "aes32esmi a5, a5, t1, 0 \n"
+            "aes32esmi a5, a5, t2, 1 \n"
+            "aes32esmi a5, a5, t3, 2 \n"
+            "aes32esmi a5, a5, t0, 3 \n"
+
+            "aes32esmi a6, a6, t2, 0 \n"
+            "aes32esmi a6, a6, t3, 1 \n"
+            "aes32esmi a6, a6, t0, 2 \n"
+            "aes32esmi a6, a6, t1, 3 \n"
+
+            "aes32esmi a7, a7, t3, 0 \n"
+            "aes32esmi a7, a7, t0, 1 \n"
+            "aes32esmi a7, a7, t1, 2 \n"
+            "aes32esmi a7, a7, t2, 3 \n"
+
+        "aes_encrypt_middle_even_round: \n"
+
+            // Load even round key
+            "lw t0, 16(a2) \n"
+            "lw t1, 20(a2) \n"
+            "lw t2, 24(a2) \n"
+            "lw t3, 28(a2) \n"
+
+            // Execute even round (SubBytes() + MixColumns() + AddRoundKey())
+            "aes32esmi t0, t0, a4, 0 \n"
+            "aes32esmi t0, t0, a5, 1 \n"
+            "aes32esmi t0, t0, a6, 2 \n"
+            "aes32esmi t0, t0, a7, 3 \n"
+
+            "aes32esmi t1, t1, a5, 0 \n"
+            "aes32esmi t1, t1, a6, 1 \n"
+            "aes32esmi t1, t1, a7, 2 \n"
+            "aes32esmi t1, t1, a4, 3 \n"
+
+            "aes32esmi t2, t2, a6, 0 \n"
+            "aes32esmi t2, t2, a7, 1 \n"
+            "aes32esmi t2, t2, a4, 2 \n"
+            "aes32esmi t2, t2, a5, 3 \n"
+
+            "aes32esmi t3, t3, a7, 0 \n"
+            "aes32esmi t3, t3, a4, 1 \n"
+            "aes32esmi t3, t3, a5, 2 \n"
+            "aes32esmi t3, t3, a6, 3 \n"
+
+            // Update key schedule pointer and  load odd round key
+            "addi a2, a2, 32 \n"
+            "lw a4, 0(a2) \n"
+            "lw a5, 4(a2) \n"
+            "lw a6, 8(a2) \n"
+            "lw a7, 12(a2) \n"
+
+            // Loop back to aes_encrypt_middle_odd_round if i < Nr/2
+            "c.addi t4, -1 \n"
+            "c.bnez t4, aes_encrypt_middle_odd_round \n"
+
+        "aes_encrypt_final_round: \n"
+
+            // Final round (SubBytes() + AddRoundKey(), no MixColumns())
+            "aes32esi a4, a4, t0, 0 \n"
+            "aes32esi a4, a4, t1, 1 \n"
+            "aes32esi a4, a4, t2, 2 \n"
+            "aes32esi a4, a4, t3, 3 \n"
+
+            "aes32esi a5, a5, t1, 0 \n"
+            "aes32esi a5, a5, t2, 1 \n"
+            "aes32esi a5, a5, t3, 2 \n"
+            "aes32esi a5, a5, t0, 3 \n"
+
+            "aes32esi a6, a6, t2, 0 \n"
+            "aes32esi a6, a6, t3, 1 \n"
+            "aes32esi a6, a6, t0, 2 \n"
+            "aes32esi a6, a6, t1, 3 \n"
+
+            "aes32esi a7, a7, t3, 0 \n"
+            "aes32esi a7, a7, t0, 1 \n"
+            "aes32esi a7, a7, t1, 2 \n"
+            "aes32esi a7, a7, t2, 3 \n"
+
+            // Save final state to *out
+            "c.sw a4, 0(a0) \n"
+            "c.sw a5, 4(a0) \n"
+            "sw a6, 8(a0) \n"
+            "sw a7, 12(a0) \n"
+
+    )
+
+    #endif
 
 	return TC_CRYPTO_SUCCESS;
 }

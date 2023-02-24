@@ -94,7 +94,9 @@ module ibex_id_stage #(
   // CRYPTO EXTENSIONS
   output logic                      sha2_en_o,
   output ibex_pkg::sha2_op_t        sha2_op_o,
-  // TODO: AES EXTENSIONS
+  output logic                      aes_en_o,
+  output logic                      aes_mix_o,
+  output logic[1:0]                 aes_bs_o,
 
   // CSR
   output logic                      csr_access_o,
@@ -494,7 +496,9 @@ module ibex_id_stage #(
     // CRYPTO EXTENSIONS
     .sha2_en_o(sha2_en_o),
     .sha2_op_o(sha2_op_o),
-    // TODO: AES EXTENSIONS
+    .aes_en_o(aes_en_o),
+    .aes_mix_o(aes_mix_o),
+    .aes_bs_o(aes_bs_o),
 
     // CSRs
     .csr_access_o(csr_access_o),

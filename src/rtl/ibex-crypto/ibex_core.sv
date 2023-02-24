@@ -573,7 +573,9 @@ module ibex_core import ibex_pkg::*; #(
     // CRYPTO EXTENSIONS
     .sha2_en_o(sha2_en_ex),
     .sha2_op_o(sha2_op_ex),
-    // TODO: AES extension
+    .aes_en_o(aes_en_ex),
+    .aes_mix_o(aes_mix_ex),
+    .aes_bs_o(aes_bs_ex),
 
     // CSR ID/EX
     .csr_access_o         (csr_access),
@@ -696,6 +698,9 @@ module ibex_core import ibex_pkg::*; #(
     // CRYPTO EXTENSIONS
     .sha2_en_i(sha2_en_ex),
     .sha2_op_i(sha2_op_ex),
+    .aes_en_i(aes_en_ex),
+    .aes_mix_i(aes_mix_ex),
+    .aes_bs_i(aes_bs_ex),
 
     // Intermediate value register
     .imd_val_we_o(imd_val_we_ex),

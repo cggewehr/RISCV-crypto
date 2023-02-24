@@ -1,5 +1,7 @@
 ibex_pkg.sv
 sha2_unit.sv
+aes_sbox.sv
+aes_unit.sv
 ibex_alu.sv
 ibex_compressed_decoder.sv
 ibex_controller.sv
