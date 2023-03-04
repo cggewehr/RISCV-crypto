@@ -34,6 +34,7 @@
 #include <tinycrypt/utils.h>
 #include <tinycrypt/constants.h>
 
+#ifndef AES_RISCV_ASM
 static const uint8_t sbox[256] = {
 	0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b,
 	0xfe, 0xd7, 0xab, 0x76, 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0,
@@ -66,37 +67,6 @@ static inline unsigned int rotword(unsigned int a)
 
 #define subbyte(a, o)(sbox[((a) >> (o))&0xff] << (o))
 #define subword(a)(subbyte(a, 24)|subbyte(a, 16)|subbyte(a, 8)|subbyte(a, 0))
-
-int tc_aes128_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
-{
-	const unsigned int rconst[11] = {
-		0x00000000, 0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000,
-		0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000
-	};
-	unsigned int i;
-	unsigned int t;
-
-	if (s == (TCAesKeySched_t) 0) {
-		return TC_CRYPTO_FAIL;
-	} else if (k == (const uint8_t *) 0) {
-		return TC_CRYPTO_FAIL;
-	}
-
-	for (i = 0; i < Nk; ++i) {
-		s->words[i] = (k[Nb*i]<<24) | (k[Nb*i+1]<<16) |
-			      (k[Nb*i+2]<<8) | (k[Nb*i+3]);
-	}
-
-	for (; i < (Nb * (Nr + 1)); ++i) {
-		t = s->words[i-1];
-		if ((i % Nk) == 0) {
-			t = subword(rotword(t)) ^ rconst[i/Nk];
-		}
-		s->words[i] = s->words[i-Nk] ^ t;
-	}
-
-	return TC_CRYPTO_SUCCESS;
-}
 
 static inline void add_round_key(uint8_t *s, const unsigned int *k)
 {
@@ -155,6 +125,206 @@ static inline void shift_rows(uint8_t *s)
 	(void) _copy(s, sizeof(t), t, sizeof(t));
 }
 
+#ifdef TC_AES_128
+int tc_aes128_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
+#endif
+
+#ifdef TC_AES_192
+int tc_aes192_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
+#endif
+
+#ifdef TC_AES_256
+int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
+#endif
+{
+    #ifndef AES_RISCV_ASM
+	const unsigned int rconst[Nr+1] = RCON;  // Defined in aes.h
+	unsigned int i;
+	unsigned int t;
+
+	if (s == (TCAesKeySched_t) 0)
+		return TC_CRYPTO_FAIL;
+	else if (k == (const uint8_t *) 0)
+		return TC_CRYPTO_FAIL;
+
+	for (i = 0; i < Nk; ++i)
+		s->words[i] = (k[Nb*i] << 24) | (k[Nb*i+1] << 16) | (k[Nb*i+2] << 8) | (k[Nb*i+3]);
+
+	for (; i < (Nb * (Nr + 1)); ++i) {
+        
+		t = s->words[i-1];
+        
+		if ((i % Nk) == 0)
+			t = subword(rotword(t)) ^ rconst[i/Nk];
+        
+        #ifdef TC_AES_256
+		if ((i % Nk) == 4)
+			t = subword(t);
+        #endif
+
+		s->words[i] = s->words[i-Nk] ^ t;
+	}
+    #else
+
+	const uint8_t rconst[Nr] = RCON_ASM;  // Defined in aes.h
+    register uint8_t* rcon_ptr asm("t4") = rconst;
+    register unsigned int* key_schedule_ptr asm("a0") = s->words;
+    register unsigned uint8_t* key_ptr asm("a1") = out;
+
+    // REG TABLE
+
+    // a0: pointer to key schedule
+    // a1: pointer to main key
+    // a2: Wi at the start of "aes_key_sched_main_loop", Wi at the end of the same loop
+    // a3: Wi+1
+    // a4: Wi+2
+    // a5: Wi+3
+    // a6: Wi+4 (only for AES-192 and AES-256)
+    // a7: Wi+5 (only for AES-192 and AES-256)
+    
+    // t0: Wi+6 (only for AES-256)
+    // t1: Wi+7 (only for AES-256)
+    // t3: round counter
+    // t4: pointer to round constant array
+
+    asm volatile (
+
+        #define xstr(s) str(s)
+        #define str(s) #s
+
+        // Copy main key to key schedule (first Nk words, 4 for AES-128, 6 for AES-192, 8 for AES-256)
+        "lw a2,  0(a1)  \n"
+        "sw a2,  0(a0)  \n"
+        "lw a3,  4(a1)  \n"
+        "sw a3,  4(a0)  \n"
+        "lw a4,  8(a1)  \n"
+        "sw a4,  8(a0)  \n"
+        "lw a5, 12(a1)  \n"
+        "sw a5, 12(a0)  \n"
+
+        // 2 extra words for AES-192
+        #ifdef TC_AES_192
+        "lw a6, 16(a1)  \n"
+        "sw a6, 16(a0)  \n"
+        "lw a7, 20(a1)  \n"
+        "sw a7, 20(a0)  \n"
+        #endif
+
+        // 4 extra words for AES-256
+        #ifdef TC_AES_256
+        "lw a6, 16(a1)  \n"
+        "sw a6, 16(a0)  \n"
+        "lw a7, 20(a1)  \n"
+        "sw a7, 20(a0)  \n"
+        "lw t0, 24(a1)  \n"
+        "sw t0, 24(a0)  \n"
+        "lw t1, 28(a1)  \n"
+        "sw t1, 28(a0)  \n"
+        #endif
+
+        // Update key schedule pointer after copying main key to schedule
+        #ifdef TC_AES_128
+        "addi a0, a0, 16  \n"
+        #elifdef TC_AES_192
+        "addi a0, a0, 24  \n"
+        #elifdef TC_AES_256
+        "addi a0, a0, 32  \n"
+        #endif
+        
+        // Init round counter and round constant
+        "li t3, t0, " str(Nr) "  \n"
+        "add t5, t0, t0  \n"
+        
+        // Compute Nk key schedule words per loop iteration
+        "aes_key_schedule_loop:  \n"
+        
+            // Get round constant and XOR with W[i-N]
+            "lbu t5, 0(t4)  \n"
+            "xor a2, t5, a2"
+            
+            // RotWord(W[i-1]) (W[i-1] is t1 if AES-256, a7 if AES-192, a5 if AES-128)
+            #ifdef TC_AES_128
+            "slli t5, a5, 24  \n"
+            "srli t6, a5, 8  \n"
+            "or t5, t5, t6  \n"
+            #elifdef TC_AES_192
+            "slli t5, a7, 24  \n"
+            "srli t6, a7, 8  \n"
+            "or t5, t5, t6  \n"
+            #elifdef TC_AES_256
+            "slli t5, t1, 24  \n"
+            "srli t6, t1, 8  \n"
+            "or t5, t5, t6  \n"
+            #endif
+            
+            // SubWord(RotWord(W[i-1])) ^ RCON[i]
+		    "aes32esi a2, a2, t5, 0  \n"
+		    "aes32esi a2, a2, t5, 1  \n"
+		    "aes32esi a2, a2, t5, 2  \n"
+		    "aes32esi a2, a2, t5, 3  \n"
+            
+            // Computing W[i-1] ^ W[i-Nk]
+            "xor a3, a3, a2  \n"
+            "xor a4, a4, a3  \n"
+            "xor a5, a5, a4  \n"
+            
+            #ifdef TC_AES_192
+            
+            "xor a6, a6, a5  \n"
+            "xor a7, a7, a6  \n"
+            
+            #elsifdef TC_AES_256
+            
+		    "aes32esi a6, a6, a5, 0  \n"
+		    "aes32esi a6, a6, a5, 1  \n"
+		    "aes32esi a6, a6, a5, 2  \n"
+		    "aes32esi a6, a6, a5, 3  \n"
+            
+            "xor a7, a7, a6  \n"
+            "xor t0, t0, a7  \n"
+            "xor t1, t1, t0  \n"
+            
+            #endif
+
+            // Commit to memory
+            "sw a2,  0(a0)  \n"
+            "sw a3,  4(a0)  \n"
+            "sw a4,  8(a0)  \n"
+            "sw a5, 12(a0)  \n"
+            
+            #ifdef TC_AES_192
+            "sw a6, 16(a0)  \n"
+            "sw a7, 20(a0)  \n"
+            #elsifdef TC_AES_256
+            "sw a6, 16(a0)  \n"
+            "sw a7, 20(a0)  \n"
+            "sw t0, 24(a0)  \n"
+            "sw t1, 28(a0)  \n"
+            #endif
+            
+            // Increment key schedule pointer
+            #ifdef TC_AES_128
+            "addi a0, a0, 16  \n"
+            #elifdef TC_AES_192
+            "addi a0, a0, 24  \n"
+            #elifdef TC_AES_256
+            "addi a0, a0, 32  \n"
+            #endif
+        
+            // Increment RCON pointer and loop
+            "addi t4, t4, 1  \n"
+            "subi t3, t3, 1  \n"
+            "bnez t3, aes_key_schedule_loop  \n"
+        
+        #undef str
+        #undef xstr
+
+    :: "r" (key_schedule_ptr), "r" (key_ptr), "r" (rcon_ptr):);
+    #endif
+
+	return TC_CRYPTO_SUCCESS;
+}
+
 int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
 {
     #ifndef AES_RISCV_ASM
@@ -208,9 +378,9 @@ int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
     // t3: 4th column of current state in even middle rounds
     // t4: Decrementing round counter
 
-    register unsigned int* output_ptr asm("a0") = out;
-    register unsigned int* input_ptr asm("a1") = in;
-    register unsigned int* key_schedule_ptr asm("a2") = s.words;
+    register unsigned uint8_t* output_ptr asm("a0") = out;
+    register unsigned uint8_t* input_ptr asm("a1") = in;
+    register unsigned int* key_schedule_ptr asm("a2") = s->words;
     register int i asm("t4") = Nr/2;
 
     asm volatile (
@@ -330,7 +500,8 @@ int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
             "sw a6, 8(a0) \n"
             "sw a7, 12(a0) \n"
 
-    )
+
+    :: "r" (output_ptr), "r" (input_ptr), "r" (key_schedule_ptr), "r" (i):);
 
     #endif
 
