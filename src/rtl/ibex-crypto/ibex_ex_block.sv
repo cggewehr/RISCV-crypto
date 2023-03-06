@@ -62,7 +62,7 @@ module ibex_ex_block #(
 
   import ibex_pkg::*;
 
-  logic [31:0] alu_result, multdiv_result, sha2_result;
+  logic [31:0] alu_result, multdiv_result, sha2_result, aes_result;
 
   logic [32:0] multdiv_alu_operand_b, multdiv_alu_operand_a;
   logic [33:0] alu_adder_result_ext;
