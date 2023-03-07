@@ -44,7 +44,7 @@ module aes_unit #(
     assign bytes_in[2] = rs2_gated[23:16];
     assign bytes_in[3] = rs2_gated[31:24];
 
-    wire[7:0] sel_byte = bytes_in[bs];
+    wire[7:0] sel_byte = bytes_in[bs_in];
     wire[7:0] sbox_out;
 
     // Multiply by 2 in GF(2^8) modulo 8'h1b
@@ -78,10 +78,10 @@ module aes_unit #(
     wire[31:0] result = mix_in ? result_mix : {24'b0, sbox_out};
 
     wire[31:0] rotated =
-        {32{bs == 2'b00}} & {result                      } |
-        {32{bs == 2'b01}} & {result[23:0], result[31:24] } |
-        {32{bs == 2'b10}} & {result[15:0], result[31:16] } |
-        {32{bs == 2'b11}} & {result[ 7:0], result[31: 8] } ;
+        {32{bs_in == 2'b00}} & {result                      } |
+        {32{bs_in == 2'b01}} & {result[23:0], result[31:24] } |
+        {32{bs_in == 2'b10}} & {result[15:0], result[31:16] } |
+        {32{bs_in == 2'b11}} & {result[ 7:0], result[31: 8] } ;
 
     assign rd_out = rotated ^ rs1_gated;
 

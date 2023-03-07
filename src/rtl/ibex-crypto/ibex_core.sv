@@ -266,7 +266,9 @@ module ibex_core import ibex_pkg::*; #(
   // CRYPTO EXTENSIONS
   logic sha2_en_ex;
   sha2_op_t sha2_op_ex;
-  // TODO: AES Extension
+  logic[1:0] aes_bs_ex;
+  logic aes_en_ex;
+  logic aes_mix_ex;
 
   // CSR control
   logic        csr_access;

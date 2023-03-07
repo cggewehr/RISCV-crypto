@@ -124,6 +124,7 @@ static inline void shift_rows(uint8_t *s)
 	t[12] = s[12]; t[13] = s[1]; t[14] = s[6]; t[15] = s[11];
 	(void) _copy(s, sizeof(t), t, sizeof(t));
 }
+#endif
 
 #ifdef TC_AES_128
 int tc_aes128_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
@@ -169,7 +170,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
 	const uint8_t rconst[Nr] = RCON_ASM;  // Defined in aes.h
     register uint8_t* rcon_ptr asm("t4") = rconst;
     register unsigned int* key_schedule_ptr asm("a0") = s->words;
-    register unsigned uint8_t* key_ptr asm("a1") = out;
+    register uint8_t* key_ptr asm("a1") = k;
 
     // REG TABLE
 
@@ -232,7 +233,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
         #endif
         
         // Init round counter and round constant
-        "li t3, t0, " str(Nr) "  \n"
+        "li t3, " xstr(Nr) "  \n"
         "add t5, t0, t0  \n"
         
         // Compute Nk key schedule words per loop iteration
@@ -240,7 +241,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
         
             // Get round constant and XOR with W[i-N]
             "lbu t5, 0(t4)  \n"
-            "xor a2, t5, a2"
+            "xor a2, t5, a2  \n"
             
             // RotWord(W[i-1]) (W[i-1] is t1 if AES-256, a7 if AES-192, a5 if AES-128)
             #ifdef TC_AES_128
@@ -313,8 +314,8 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
         
             // Increment RCON pointer and loop
             "addi t4, t4, 1  \n"
-            "subi t3, t3, 1  \n"
-            "bnez t3, aes_key_schedule_loop  \n"
+            "addi t3, t3, -1  \n"
+            "bne t3, x0, aes_key_schedule_loop  \n"
         
         #undef str
         #undef xstr
@@ -378,8 +379,8 @@ int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
     // t3: 4th column of current state in even middle rounds
     // t4: Decrementing round counter
 
-    register unsigned uint8_t* output_ptr asm("a0") = out;
-    register unsigned uint8_t* input_ptr asm("a1") = in;
+    register uint8_t* output_ptr asm("a0") = out;
+    register uint8_t* input_ptr asm("a1") = in;
     register unsigned int* key_schedule_ptr asm("a2") = s->words;
     register int i asm("t4") = Nr/2;
 
@@ -468,8 +469,8 @@ int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
             "lw a7, 12(a2) \n"
 
             // Loop back to aes_encrypt_middle_odd_round if i < Nr/2
-            "c.addi t4, -1 \n"
-            "c.bnez t4, aes_encrypt_middle_odd_round \n"
+            "addi t4, t4, -1 \n"
+            "bne t4, x0, aes_encrypt_middle_odd_round \n"
 
         "aes_encrypt_final_round: \n"
 

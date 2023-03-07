@@ -1119,7 +1119,9 @@ module ibex_top import ibex_pkg::*; #(
     // data_rdata_i and data_rdata_intg_i are only relevant to reads. Check neither are X on
     // a response to a read.
     `ASSERT_KNOWN_IF(IbexDataRPayloadX, {data_rdata_i, data_rdata_intg_i},
-        data_rvalid_i & pending_dside_accesses_q[0].is_read)
+        //data_rvalid_i & pending_dside_accesses_q[0].is_read)
+        // This allows for reading X's when reading bytes and halfwords
+        data_rvalid_i & pending_dside_accesses_q[0].is_read & (data_be_o == 4'b1111))
 
     // data_err_i relevant to both reads and writes. Check it isn't X on any response.
     `ASSERT_KNOWN_IF(IbexDataRErrPayloadX, data_err_i, data_rvalid_i)
