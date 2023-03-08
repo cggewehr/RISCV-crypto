@@ -236,11 +236,11 @@ static void compress(uint64_t *iv, const uint8_t *data)
 
     iv[0] += a; iv[1] += b; iv[2] += c; iv[3] += d;
     iv[4] += e; iv[5] += f; iv[6] += g; iv[7] += h;
-    
+
     #else
-    
+
     uint64_t work_space[16];
-    
+
     register uint64_t* iv_ptr asm ("a0") = iv;
     register uint8_t* leftover_ptr asm ("a1") = data;
     register uint64_t* k512_ptr asm ("a2") = k512;
@@ -248,7 +248,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
 
     // REG TABLE
 
-    // a0: Pointer to running state 
+    // a0: Pointer to running state
     // a1: Pointer to message block
     // a2: Pointer to round constants (later moved to sp, allowing for this register to be used as a temp in compressed instructions)
     // a3: Pointer to workspace (16 relevant words of the message schedule)
@@ -259,21 +259,21 @@ static void compress(uint64_t *iv, const uint8_t *data)
     // t3: G state variable (higher part)
     // t4: F state variable (lower part)
     // t5: F state variable (higher part)
-    
+
     // a4: E state variable (lower part)
     // a5: E state variable (higher part)
     // a6: D state variable (lower part)
     // a7: D state variable (higher part)
-    
+
     // s2: C state variable (lower part)
     // s3: C state variable (higher part)
     // s4: B state variable (lower part)
     // s5: B state variable (higher part)
     // s6: A state variable (lower part)
     // s7: A state variable (higher part)
-    
+
     // t6: stack pointer
-    
+
     // s0: load/store temp
     // s1: load/store temp
     // s8: round constant pointer / round counter
@@ -282,7 +282,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
     // s11: temp
 
     asm volatile (
-        
+
         // Store s0-s7 registers in stack
         "addi sp, sp, -48  \n"
         "sw s0,  0(sp)   \n"
@@ -324,12 +324,12 @@ static void compress(uint64_t *iv, const uint8_t *data)
         "sha512_compress_iter_top:  \n"
 
             // Choose if load W[i] from data[] (i < 16) or compute new W (i >= 16)
-            "li s0, 64  \n"  // (16 << 2)
+            "li s0, 128  \n"  // (16*8, round counter is incremented by eight at each iteration)
             "bge s8, s0, sha512_compress_compute_new_W  \n"
-        
+
             // Fall through to load W[i] from data[], i < 16
             "sha512_compress_load_W_from_workspace:  \n"
-        
+
                 // a2 <= lower bits of W[i]
                 "add s0, a1, s8  \n"
                 "lw a2, 0(s0)  \n"
@@ -353,7 +353,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "and s0, s0, a2  \n"
                 "srli s0, s0, 24  \n"
                 "or s1, s1, s0  \n"
-        
+
                 // a2 <= higher bits of W[i]
                 "add s0, a1, s8  \n"
                 "lw s9, 4(s0)  \n"
@@ -377,26 +377,93 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "and a2, s10, s9  \n"
                 "srli a2, a2, 24  \n"
                 "or s0, s0, a2  \n"
-                
-                // At this point s0 and s1 contain a 64-bit word in reversed byte order
-                // TODO: Store s0 and s1 to workspace and increment pointer
-                
-                "j sha512_compress_do_round"
-                
+
+                // Store s0 and s1 to workspace and increment pointer
+                // (At this point s0 and s1 contain a 64-bit word message schedule in reversed byte order)
+                "add a2, a3, s8  \n"
+                "sw s0, 0(a2)  \n"
+                "sw s1, 4(a2)  \n"
+                "addi s8, s8, 8  \n"
+
+                "j sha256_compress_compute_state  \n"
+
             // Compute new W, i >= 16
             "sha512_compress_compute_new_W:  \n"
-            
-                // TODO: New W[i] at s0 and s1
+
+                // s10 | s11 <= W[i+1 & 0xF] (equivalent to W[i-15])
+                "addi a2, s8, 8  \n"  // SHA-512 has 64-bit (8 byte) words, thus the array offset is multiplied by 8
+                "li s10, 0x7F  \n"
+                "and a2, a2, s10  \n"
+                "add a2, a2, a3  \n"
+                "lw s10, 0(a2)  \n"
+                "lw s11, 4(a2)  \n"
+
+                // s0 | s1 <= Sigma0(s10|s11)
+                "sha512sig0l s0, s10, s11  \n"
+                "sha512sig0h s1, s11, s10  \n"
+
+                // s10 | s11 <= W[i+14 & 0xF] (equivalent to W[i-2])
+                "addi a2, s8, 112  \n"  // 112 = 14*8, SHA-512 has 64-bit (8 byte) words, thus the array offset is multiplied by 8
+                "li s10, 0x7F  \n"
+                "and a2, a2, s10  \n"
+                "add a2, a2, a3  \n"
+                "lw s10, 0(a2)  \n"
+                "lw s11, 4(a2)  \n"
+
+                // a2 | s9 <= Sigma1(s10|s11)
+                "sha512sig1l a2, s10, s11  \n"
+                "sha512sig1h s9, s11, s10  \n"
+
+                // s0 | s1 <= Sigma0(W[i-2]) + Sigma1(W[i-15])
+                "add s0, s0, a2  \n"
+                "sltu a2, s0, a2  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, s9  \n"
+                "add s1, s1, a2  \n"
+
+                // s10 | s11 <= W[i+9 & 0xF]  (equivalent to W[i-7])"
+                "addi a2, s8, 72  \n"  // 72 = 9*8, SHA-512 has 64-bit (8 byte) words, thus the array offset is multiplied by 8
+                "li s10, 0x7F  \n"
+                "and a2, a2, s10  \n"
+                "add a2, a2, a3  \n"
+                "lw s10, 0(a2)  \n"
+                "lw s11, 4(a2)  \n"
+
+                // s0 | s1 <= Sigma0(W[i-2]) + Sigma1(W[i-15]) + W[i-2]
+                "add s0, s0, s10  \n"
+                "sltu a2, s0, a2  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, s11  \n"
+                "add s1, s1, a2  \n"
+
+                // s10 | s11 <= W[i & 0xF]  (equivalent to W[i]), will be replaced this iteration
+                "li s10, 0x7F  \n"
+                "and a2, s8, s10  \n"
+                "add a2, a2, a3  \n"
+                "lw s10, 0(a2)  \n"
+                "lw s11, 4(a2)  \n"
+
+                // s0 | s1 <= Sigma0(W[i-2]) + Sigma1(W[i-15]) + W[i-2] + W[i] == Next W[i]
+                "add s0, s0, s10  \n"
+                "sltu s9, s0, s9  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, s11  \n"
+                "add s1, s1, s9  \n"
+
+                // Store new W[i] at s0 and s1
+                "sw s0, 0(a2)  \n"
+                "sw s1, 4(a2)  \n"
+
+            "sha256_compress_compute_state:  \n"
+
+                // TODO: Compute new state vars with given word at s0 and s1
+
+
                 
-            "sha512_compress_do_round:  \n"
-            
-                // TODO: compute new state vars with given word at s0 and s1
-                
-                
+                "addi s8, s8, 8  \n"
+                "addi sp, sp, 8  \n"
+
         // TODO: Restore SP and saved registers
         "mv sp, t6  \n"
 
     :::)
-    
+
     #endif
 }
