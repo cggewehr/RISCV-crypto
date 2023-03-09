@@ -385,7 +385,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "sw s1, 4(a2)  \n"
                 "addi s8, s8, 8  \n"
 
-                "j sha256_compress_compute_state  \n"
+                "j sha512_compress_compute_state  \n"
 
             // Compute new W, i >= 16
             "sha512_compress_compute_new_W:  \n"
@@ -415,12 +415,12 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "sha512sig1h s9, s11, s10  \n"
 
                 // s0 | s1 <= Sigma0(W[i-2]) + Sigma1(W[i-15])
-                "add s0, s0, a2  \n"
+                "add s0, s0, a2  \n"   // Adds lower parts
                 "sltu a2, s0, a2  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
-                "add s1, s1, s9  \n"
-                "add s1, s1, a2  \n"
+                "add s1, s1, s9  \n"   // Adds higher parts
+                "add s1, s1, a2  \n"   // Adds carry from lower part to higher part
 
-                // s10 | s11 <= W[i+9 & 0xF]  (equivalent to W[i-7])"
+                // s10 | s11 <= W[i+9 & 0xF]  (equivalent to W[i-7])
                 "addi a2, s8, 72  \n"  // 72 = 9*8, SHA-512 has 64-bit (8 byte) words, thus the array offset is multiplied by 8
                 "li s10, 0x7F  \n"
                 "and a2, a2, s10  \n"
@@ -429,39 +429,160 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "lw s11, 4(a2)  \n"
 
                 // s0 | s1 <= Sigma0(W[i-2]) + Sigma1(W[i-15]) + W[i-2]
-                "add s0, s0, s10  \n"
-                "sltu a2, s0, a2  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
-                "add s1, s1, s11  \n"
-                "add s1, s1, a2  \n"
+                "add s0, s0, s10  \n"   // Adds lower parts
+                "sltu a2, s0, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, s11  \n"   // Adds higher parts
+                "add s1, s1, a2  \n"    // Adds carry from lower part to higher part
 
-                // s10 | s11 <= W[i & 0xF]  (equivalent to W[i]), will be replaced this iteration
+                // s10 | s11 <= W[i & 0xF]  (equivalent to W[i-16]), will be replaced this iteration
                 "li s10, 0x7F  \n"
                 "and a2, s8, s10  \n"
                 "add a2, a2, a3  \n"
                 "lw s10, 0(a2)  \n"
                 "lw s11, 4(a2)  \n"
 
-                // s0 | s1 <= Sigma0(W[i-2]) + Sigma1(W[i-15]) + W[i-2] + W[i] == Next W[i]
-                "add s0, s0, s10  \n"
-                "sltu s9, s0, s9  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
-                "add s1, s1, s11  \n"
-                "add s1, s1, s9  \n"
+                // s0 | s1 <= Sigma0(W[i-2]) + Sigma1(W[i-15]) + W[i-2] + W[i-16] == W[i]
+                "add s0, s0, s10  \n"   // Adds lower parts
+                "sltu s9, s0, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, s11  \n"   // Adds higher parts
+                "add s1, s1, s9  \n"    // Adds carry from lower part to higher part
 
                 // Store new W[i] at s0 and s1
                 "sw s0, 0(a2)  \n"
                 "sw s1, 4(a2)  \n"
 
-            "sha256_compress_compute_state:  \n"
+            // Compute new state vars with given round word W[i] at s0 (lower bits) and s1 (higher bits)
+            "sha512_compress_compute_state:  \n"
 
-                // TODO: Compute new state vars with given word at s0 and s1
+                // s10 | s11 <= Sum1(E)
+                "sha512sum1r s10, a4, a5  \n"
+                "sha512sum1r s11, a5, a4  \n"
 
+                // s0 | s1 <= W[i] + Sum0(E)
+                "add s0, s0, s10  \n"   // Adds lower parts
+                "sltu s9, s0, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, s11  \n"   // Adds higher parts
+                "add s1, s1, s9  \n"    // Adds carry from lower part to higher part
 
-                
-                "addi s8, s8, 8  \n"
-                "addi sp, sp, 8  \n"
+                // s10 | s11 <= K[i] (round constant)
+                "lw s10, 0(sp)  \n"
+                "lw s11, 4(sp)  \n"
 
-        // TODO: Restore SP and saved registers
-        "mv sp, t6  \n"
+                // s0 | s1 <= W[i] + Sum0(E) + K[i]
+                "add s0, s0, s10  \n"   // Adds lower parts
+                "sltu s9, s0, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, s11  \n"   // Adds higher parts
+                "add s1, s1, s9  \n"    // Adds carry from lower part to higher part
+
+                // s0 | s1 <= W[i] + Sum0(E) + K[i] + H
+                "add s0, s0, t0  \n"   // Adds lower parts
+                "sltu s9, s0, t0  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s1, s1, t1  \n"   // Adds higher parts
+                "add s1, s1, s9  \n"   // Adds carry from lower part to higher part
+
+                // Updates H, G, and F variables, freeing up a4 and a5 (current E) registers for temp use
+                "mv t0, t2  \n"  // t0 now contains G (lower bits)
+                "mv t1, t3  \n"  // t1 now contains G (higher bits)
+                "mv t2, t4  \n"  // t2 now contains F (lower bits)
+                "mv t3, t5  \n"  // t3 now contains F (higher bits)
+                "mv t4, a4  \n"  // t4 now contains E (lower bits)
+                "mv t5, a5  \n"  // t5 now contains E (higher bits)
+
+                // a4 | a5 <= Ch(E, F, G) == (G ^ (E & (F ^ G))) (see https://github.com/riscv/riscv-crypto/blob/master/doc/supp/bitlogic.adoc)
+                // (Note that the contents of s0 and s1 (W[i]) have already been consumed, so using these registers as temps allows for compressed encoding of these four instructions)
+                "xor s0, t2, t0  \n"  // F ^ G
+                "xor s1, t3, t1  \n"  // F ^ G
+                "and a4, a4, s0  \n"  // E & (F ^ G)
+                "and a5, a5, s1  \n"  // E & (F ^ G)
+                "xor a4, a4, t0  \n"  // G ^ (E & (F ^ G))
+                "xor a5, a5, t1  \n"  // G ^ (E & (F ^ G))
+
+                // s10 | s11 <= T1 (W[i] + Sum0(E) + K[i] + H + Ch(E, F, G))
+                "add s10, s10, a4  \n"  // Adds lower parts
+                "sltu s9, s10, a4  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s11, s11, a5  \n"  // Adds higher parts
+                "add s11, s11, s9  \n"  // Adds carry from lower part to higher part
+
+                // a4 | a5 <= T1 + D (Finishes computing new E)
+                "add a4, a6, s10  \n"   // Adds lower parts
+                "sltu s9, a6, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add a5, a7, s11  \n"   // Adds higher parts
+                "add a5, a5, s9  \n"    // Adds carry from lower part to higher part
+
+                // Updates D, C, and B variables, freeing up s6 and s7 (current A) registers for temp use
+                "mv a6, s2  \n"  // a6 now contains C (lower bits)
+                "mv a7, s3  \n"  // a7 now contains C (higher bits)
+                "mv s2, s4  \n"  // s2 now contains B (lower bits)
+                "mv s3, s5  \n"  // s3 now contains B (higher bits)
+                "mv s4, s6  \n"  // s4 now contains A (lower bits)
+                "mv s5, s7  \n"  // s5 now contains A (higher bits)
+
+                // a2 | s9 <= Sum0(A)
+                "sha512sum0r a2, s6, s7  \n"
+                "sha512sum0r s9, s7, s6  \n"
+
+                // s10 | s11 <= T1 + Sum0(A)
+                "add s10, s10, a2  \n"  // Adds lower parts
+                "sltu s0, s10, a2  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s11, s11, a5  \n"  // Adds higher parts
+                "add s11, s11, s0  \n"  // Adds carry from lower part to higher part
+
+                // s6 | s7 <= Maj(A, B, C) == (A ^ ((A ^ B) & (A ^ C))) (see https://github.com/riscv/riscv-crypto/blob/master/doc/supp/bitlogic.adoc)
+                "xor s0, s4, a6  \n"  // A ^ C
+                "xor s1, s5, a7  \n"  // A ^ C
+                "xor a2, s2, s5  \n"  // A ^ B
+                "xor s9, s3, s7  \n"  // A ^ B
+                "and s0, s0, a2  \n"  // (A ^ B) & (A ^ C)
+                "and s1, s1, s9  \n"  // (A ^ B) & (A ^ C)
+                "xor s6, s6, s0  \n"  // (A ^ ((A ^ B) & (A ^ C)))
+                "xor s7, s7, s1  \n"  // (A ^ ((A ^ B) & (A ^ C)))
+
+                // s6 | s7 <= T1 + T2 (Finishes computing new A)
+                "add s6, s6, s10  \n"   // Adds lower parts
+                "sltu s9, s6, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s7, s7, s11  \n"   // Adds higher parts
+                "add s7, s7, s9  \n"    // Adds carry from lower part to higher part
+
+            // Finish iteration, loop back to top if i < 80
+            "addi s8, s8, 8  \n"
+            "addi sp, sp, 8  \n"
+            "slti a2, s8, 640  \n"  // (80 << 3)
+            "beq a2, x0, sha512_compress_iter_top  \n"
+
+        // Commit final state to memory
+        "mv sp,  a0  \n"  //  Allows for compact encoding when assembling with C extension
+        "sw t0,  0(sp)  \n"
+        "sw t1,  4(sp)  \n"
+        "sw t2,  8(sp)  \n"
+        "sw t3, 12(sp)  \n"
+        "sw t4, 16(sp)  \n"
+        "sw t5, 20(sp)  \n"
+        "sw a4, 24(sp)  \n"
+        "sw a5, 28(sp)  \n"
+        "sw a6, 32(sp)  \n"
+        "sw a7, 36(sp)  \n"
+        "sw s2, 40(sp)  \n"
+        "sw s3, 44(sp)  \n"
+        "sw s4, 48(sp)  \n"
+        "sw s5, 52(sp)  \n"
+        "sw s6, 56(sp)  \n"
+        "sw s7, 60(sp)  \n"
+
+        // Restore SP and saved registers
+        "mv sp,  t6  \n"  //  Allows for compact encoding when assembling with C extension
+        "lw s0,  0(sp)   \n"
+        "lw s1,  4(sp)   \n"
+        "lw s2,  8(sp)   \n"
+        "lw s3,  12(sp)  \n"
+        "lw s4,  16(sp)  \n"
+        "lw s5,  20(sp)  \n"
+        "lw s6,  24(sp)  \n"
+        "lw s7,  28(sp)  \n"
+        "lw s8,  32(sp)  \n"
+        "lw s9,  36(sp)  \n"
+        "lw s10, 40(sp)  \n"
+        "lw s11, 44(sp)  \n"
+        "addi sp, sp, 48  \n"
 
     :::)
 
