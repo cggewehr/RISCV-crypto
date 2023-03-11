@@ -148,7 +148,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
 	else if (k == (const uint8_t *) 0)
 		return TC_CRYPTO_FAIL;
 
-	for (i = 0; i < Nk; ++i)
+	for (i = 0; i < Nr; ++i)
 		s->words[i] = (k[Nb*i] << 24) | (k[Nb*i+1] << 16) | (k[Nb*i+2] << 8) | (k[Nb*i+3]);
 
 	for (; i < (Nb * (Nr + 1)); ++i) {
