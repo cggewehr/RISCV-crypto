@@ -124,6 +124,11 @@ static inline void shift_rows(uint8_t *s)
 	t[12] = s[12]; t[13] = s[1]; t[14] = s[6]; t[15] = s[11];
 	(void) _copy(s, sizeof(t), t, sizeof(t));
 }
+
+const unsigned int rconst[Nr+1] = RCON;  // Defined in aes.h
+
+#else
+const uint8_t rconst[Nr] = RCON_ASM;  // Defined in aes.h
 #endif
 
 #ifdef TC_AES_128
@@ -139,7 +144,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
 #endif
 {
     #ifndef AES_RISCV_ASM
-	const unsigned int rconst[Nr+1] = RCON;  // Defined in aes.h
+	//const unsigned int rconst[Nr+1] = RCON;  // Defined in aes.h
 	unsigned int i;
 	unsigned int t;
 
@@ -167,10 +172,10 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
 	}
     #else
 
-	const uint8_t rconst[Nr] = RCON_ASM;  // Defined in aes.h
-    register uint8_t* rcon_ptr asm("t4") = rconst;
+	//const uint8_t rconst[Nr] = RCON_ASM;  // Defined in aes.h
     register unsigned int* key_schedule_ptr asm("a0") = s->words;
     register uint8_t* key_ptr asm("a1") = k;
+    register uint8_t* rcon_ptr asm("t4") = rconst;
 
     // REG TABLE
 
@@ -233,6 +238,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
         #endif
         
         // Init round counter and round constant
+        //"la t4, rconst  \n"
         "li t3, " xstr(Nr) "  \n"
         "add t5, t0, t0  \n"
         
@@ -274,7 +280,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
             "xor a6, a6, a5  \n"
             "xor a7, a7, a6  \n"
             
-            #elsifdef TC_AES_256
+            #elifdef TC_AES_256
             
 		    "aes32esi a6, a6, a5, 0  \n"
 		    "aes32esi a6, a6, a5, 1  \n"
@@ -296,7 +302,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
             #ifdef TC_AES_192
             "sw a6, 16(a0)  \n"
             "sw a7, 20(a0)  \n"
-            #elsifdef TC_AES_256
+            #elifdef TC_AES_256
             "sw a6, 16(a0)  \n"
             "sw a7, 20(a0)  \n"
             "sw t0, 24(a0)  \n"

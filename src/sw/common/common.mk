@@ -12,7 +12,7 @@
 
 INCS := -I$(COMMON_DIR) -I$(COMMON_DIR)/tinycrypt
 #DEFS := -DSHA256_RISCV_ASM -DTC_AES_128 -DAES_RISCV_ASM
-DEFS := -DSHA256_RISCV_ASM -DTC_AES_256
+DEFS := -DSHA256_RISCV_ASM -DSHA512_RISCV_ASM -DTC_AES_256 -DAES_RISCV_ASM
 #DEFS := 
 ARCH ?= rv32imc_zicsr_zkne_zknh
 CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -g -Os -fvisibility=hidden -ffreestanding $(INCS) $(DEFS) $(PROGRAM_CFLAGS)

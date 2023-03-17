@@ -97,7 +97,7 @@ int tc_aes128_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k);
 #elifdef TC_AES_192
 int tc_aes192_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k);
 #elifdef TC_AES_256
-int tc_aes192_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k);
+int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k);
 #endif
 
 /**

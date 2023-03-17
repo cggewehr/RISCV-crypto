@@ -300,26 +300,28 @@ static void compress(uint64_t *iv, const uint8_t *data)
 
         // Init SP as pointer to round constants and round contants pointer (also serves as loop iterator)
         "mv t6, sp  \n"
-        "mv sp, a2  \n"
+        "mv sp, a0  \n"
         "li s8, 0  \n"
 
         // Init A-H state variables (see reg table) from IV pointer at a0
-        "lw t0,  0(sp)  \n"
-        "lw t1,  4(sp)  \n"
-        "lw t2,  8(sp)  \n"
-        "lw t3, 12(sp)  \n"
-        "lw t4, 16(sp)  \n"
-        "lw t5, 20(sp)  \n"
-        "lw a4, 24(sp)  \n"
-        "lw a5, 28(sp)  \n"
-        "lw a6, 32(sp)  \n"
-        "lw a7, 36(sp)  \n"
-        "lw s2, 40(sp)  \n"
-        "lw s3, 44(sp)  \n"
-        "lw s4, 48(sp)  \n"
-        "lw s5, 52(sp)  \n"
-        "lw s6, 56(sp)  \n"
-        "lw s7, 60(sp)  \n"
+        "lw s6,  0(sp)  \n"
+        "lw s7,  4(sp)  \n"
+        "lw s4,  8(sp)  \n"
+        "lw s5, 12(sp)  \n"
+        "lw s2, 16(sp)  \n"
+        "lw s3, 20(sp)  \n"
+        "lw a6, 24(sp)  \n"
+        "lw a7, 28(sp)  \n"
+        "lw a4, 32(sp)  \n"
+        "lw a5, 36(sp)  \n"
+        "lw t4, 40(sp)  \n"
+        "lw t5, 44(sp)  \n"
+        "lw t2, 48(sp)  \n"
+        "lw t3, 52(sp)  \n"
+        "lw t0, 56(sp)  \n"
+        "lw t1, 60(sp)  \n"
+
+        "mv sp, a2  \n"
 
         "sha512_compress_iter_top:  \n"
 
@@ -383,7 +385,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "add a2, a3, s8  \n"
                 "sw s0, 0(a2)  \n"
                 "sw s1, 4(a2)  \n"
-                "addi s8, s8, 8  \n"
+                //"addi s8, s8, 8  \n"
 
                 "j sha512_compress_compute_state  \n"
 
@@ -458,7 +460,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "sha512sum1r s10, a4, a5  \n"
                 "sha512sum1r s11, a5, a4  \n"
 
-                // s0 | s1 <= W[i] + Sum0(E)
+                // s0 | s1 <= W[i] + Sum1(E)
                 "add s0, s0, s10  \n"   // Adds lower parts
                 "sltu s9, s0, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
                 "add s1, s1, s11  \n"   // Adds higher parts
@@ -468,17 +470,17 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "lw s10, 0(sp)  \n"
                 "lw s11, 4(sp)  \n"
 
-                // s0 | s1 <= W[i] + Sum0(E) + K[i]
+                // s0 | s1 <= W[i] + Sum1(E) + K[i]
                 "add s0, s0, s10  \n"   // Adds lower parts
                 "sltu s9, s0, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
                 "add s1, s1, s11  \n"   // Adds higher parts
                 "add s1, s1, s9  \n"    // Adds carry from lower part to higher part
 
-                // s0 | s1 <= W[i] + Sum0(E) + K[i] + H
-                "add s0, s0, t0  \n"   // Adds lower parts
-                "sltu s9, s0, t0  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
-                "add s1, s1, t1  \n"   // Adds higher parts
-                "add s1, s1, s9  \n"   // Adds carry from lower part to higher part
+                // s10 | s11 <= W[i] + Sum1(E) + K[i] + H
+                "add s10, s0, t0  \n"   // Adds lower parts
+                "sltu s9, s10, t0  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "add s11, s1, t1  \n"   // Adds higher parts
+                "add s11, s11, s9  \n"   // Adds carry from lower part to higher part
 
                 // Updates H, G, and F variables, freeing up a4 and a5 (current E) registers for temp use
                 "mv t0, t2  \n"  // t0 now contains G (lower bits)
@@ -489,7 +491,6 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "mv t5, a5  \n"  // t5 now contains E (higher bits)
 
                 // a4 | a5 <= Ch(E, F, G) == (G ^ (E & (F ^ G))) (see https://github.com/riscv/riscv-crypto/blob/master/doc/supp/bitlogic.adoc)
-                // (Note that the contents of s0 and s1 (W[i]) have already been consumed, so using these registers as temps allows for compressed encoding of these four instructions)
                 "xor s0, t2, t0  \n"  // F ^ G
                 "xor s1, t3, t1  \n"  // F ^ G
                 "and a4, a4, s0  \n"  // E & (F ^ G)
@@ -497,7 +498,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 "xor a4, a4, t0  \n"  // G ^ (E & (F ^ G))
                 "xor a5, a5, t1  \n"  // G ^ (E & (F ^ G))
 
-                // s10 | s11 <= T1 (W[i] + Sum0(E) + K[i] + H + Ch(E, F, G))
+                // s10 | s11 <= T1 (W[i] + Sum1(E) + K[i] + H + Ch(E, F, G))
                 "add s10, s10, a4  \n"  // Adds lower parts
                 "sltu s9, s10, a4  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
                 "add s11, s11, a5  \n"  // Adds higher parts
@@ -524,14 +525,14 @@ static void compress(uint64_t *iv, const uint8_t *data)
                 // s10 | s11 <= T1 + Sum0(A)
                 "add s10, s10, a2  \n"  // Adds lower parts
                 "sltu s0, s10, a2  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
-                "add s11, s11, a5  \n"  // Adds higher parts
+                "add s11, s11, s9  \n"  // Adds higher parts
                 "add s11, s11, s0  \n"  // Adds carry from lower part to higher part
 
                 // s6 | s7 <= Maj(A, B, C) == (A ^ ((A ^ B) & (A ^ C))) (see https://github.com/riscv/riscv-crypto/blob/master/doc/supp/bitlogic.adoc)
                 "xor s0, s4, a6  \n"  // A ^ C
                 "xor s1, s5, a7  \n"  // A ^ C
-                "xor a2, s2, s5  \n"  // A ^ B
-                "xor s9, s3, s7  \n"  // A ^ B
+                "xor a2, s4, s2  \n"  // A ^ B
+                "xor s9, s5, s3  \n"  // A ^ B
                 "and s0, s0, a2  \n"  // (A ^ B) & (A ^ C)
                 "and s1, s1, s9  \n"  // (A ^ B) & (A ^ C)
                 "xor s6, s6, s0  \n"  // (A ^ ((A ^ B) & (A ^ C)))
@@ -547,26 +548,26 @@ static void compress(uint64_t *iv, const uint8_t *data)
             "addi s8, s8, 8  \n"
             "addi sp, sp, 8  \n"
             "slti a2, s8, 640  \n"  // (80 << 3)
-            "beq a2, x0, sha512_compress_iter_top  \n"
+            "bne a2, x0, sha512_compress_iter_top  \n"
 
         // Commit final state to memory
         "mv sp,  a0  \n"  //  Allows for compact encoding when assembling with C extension
-        "sw t0,  0(sp)  \n"
-        "sw t1,  4(sp)  \n"
-        "sw t2,  8(sp)  \n"
-        "sw t3, 12(sp)  \n"
-        "sw t4, 16(sp)  \n"
-        "sw t5, 20(sp)  \n"
-        "sw a4, 24(sp)  \n"
-        "sw a5, 28(sp)  \n"
-        "sw a6, 32(sp)  \n"
-        "sw a7, 36(sp)  \n"
-        "sw s2, 40(sp)  \n"
-        "sw s3, 44(sp)  \n"
-        "sw s4, 48(sp)  \n"
-        "sw s5, 52(sp)  \n"
-        "sw s6, 56(sp)  \n"
-        "sw s7, 60(sp)  \n"
+        "sw s6,  0(sp)  \n"
+        "sw s7,  4(sp)  \n"
+        "sw s4,  8(sp)  \n"
+        "sw s5, 12(sp)  \n"
+        "sw s2, 16(sp)  \n"
+        "sw s3, 20(sp)  \n"
+        "sw a6, 24(sp)  \n"
+        "sw a7, 28(sp)  \n"
+        "sw a4, 32(sp)  \n"
+        "sw a5, 36(sp)  \n"
+        "sw t4, 40(sp)  \n"
+        "sw t5, 44(sp)  \n"
+        "sw t2, 48(sp)  \n"
+        "sw t3, 52(sp)  \n"
+        "sw t0, 56(sp)  \n"
+        "sw t1, 60(sp)  \n"
 
         // Restore SP and saved registers
         "mv sp,  t6  \n"  //  Allows for compact encoding when assembling with C extension
@@ -584,7 +585,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
         "lw s11, 44(sp)  \n"
         "addi sp, sp, 48  \n"
 
-    :::)
+    ::"r" (iv_ptr), "r" (leftover_ptr), "r" (k512_ptr), "r" (workspace_ptr):);
 
     #endif
 }
