@@ -506,7 +506,7 @@ static void compress(uint64_t *iv, const uint8_t *data)
 
                 // a4 | a5 <= T1 + D (Finishes computing new E)
                 "add a4, a6, s10  \n"   // Adds lower parts
-                "sltu s9, a6, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
+                "sltu s9, a4, s10  \n"  // This generates the carry for the sum above (result is less than one of the operands means overflow, hence the carry)
                 "add a5, a7, s11  \n"   // Adds higher parts
                 "add a5, a5, s9  \n"    // Adds carry from lower part to higher part
 
@@ -550,24 +550,88 @@ static void compress(uint64_t *iv, const uint8_t *data)
             "slti a2, s8, 640  \n"  // (80 << 3)
             "bne a2, x0, sha512_compress_iter_top  \n"
 
-        // Commit final state to memory
+        // Add IV to final state and commit new IV to memory
         "mv sp,  a0  \n"  //  Allows for compact encoding when assembling with C extension
-        "sw s6,  0(sp)  \n"
-        "sw s7,  4(sp)  \n"
-        "sw s4,  8(sp)  \n"
-        "sw s5, 12(sp)  \n"
-        "sw s2, 16(sp)  \n"
-        "sw s3, 20(sp)  \n"
-        "sw a6, 24(sp)  \n"
-        "sw a7, 28(sp)  \n"
-        "sw a4, 32(sp)  \n"
-        "sw a5, 36(sp)  \n"
-        "sw t4, 40(sp)  \n"
-        "sw t5, 44(sp)  \n"
-        "sw t2, 48(sp)  \n"
-        "sw t3, 52(sp)  \n"
-        "sw t0, 56(sp)  \n"
-        "sw t1, 60(sp)  \n"
+
+        // New A
+        "lw s0,  0(sp)  \n"
+        "lw s1,  4(sp)  \n"
+        "add s0, s0, s6  \n"
+        "sltu a3, s0, s6  \n"
+        "add s1, s1, s7  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  0(sp)  \n"
+        "sw s1,  4(sp)  \n"
+
+        // New B
+        "lw s0,  8(sp)  \n"
+        "lw s1, 12(sp)  \n"
+        "add s0, s0, s4  \n"
+        "sltu a3, s0, s4  \n"
+        "add s1, s1, s5  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  8(sp)  \n"
+        "sw s1,  12(sp)  \n"
+
+        // New C
+        "lw s0, 16(sp)  \n"
+        "lw s1, 20(sp)  \n"
+        "add s0, s0, s2  \n"
+        "sltu a3, s0, s2  \n"
+        "add s1, s1, s3  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  16(sp)  \n"
+        "sw s1,  20(sp)  \n"
+
+        // New D
+        "lw s0, 24(sp)  \n"
+        "lw s1, 28(sp)  \n"
+        "add s0, s0, a6  \n"
+        "sltu a3, s0, a6  \n"
+        "add s1, s1, a7  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  24(sp)  \n"
+        "sw s1,  28(sp)  \n"
+
+        // New E
+        "lw s0, 32(sp)  \n"
+        "lw s1, 36(sp)  \n"
+        "add s0, s0, a4  \n"
+        "sltu a3, s0, a4  \n"
+        "add s1, s1, a5  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  32(sp)  \n"
+        "sw s1,  36(sp)  \n"
+
+        // New F
+        "lw s0, 40(sp)  \n"
+        "lw s1, 44(sp)  \n"
+        "add s0, s0, t4  \n"
+        "sltu a3, s0, t4  \n"
+        "add s1, s1, t5  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  40(sp)  \n"
+        "sw s1,  44(sp)  \n"
+
+        // New G
+        "lw s0, 48(sp)  \n"
+        "lw s1, 52(sp)  \n"
+        "add s0, s0, t2  \n"
+        "sltu a3, s0, t2  \n"
+        "add s1, s1, t3  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  48(sp)  \n"
+        "sw s1,  52(sp)  \n"
+
+        // New H
+        "lw s0, 56(sp)  \n"
+        "lw s1, 60(sp)  \n"
+        "add s0, s0, t0  \n"
+        "sltu a3, s0, t0  \n"
+        "add s1, s1, t1  \n"
+        "add s1, s1, a3  \n"
+        "sw s0,  56(sp)  \n"
+        "sw s1,  60(sp)  \n"
 
         // Restore SP and saved registers
         "mv sp,  t6  \n"  //  Allows for compact encoding when assembling with C extension
