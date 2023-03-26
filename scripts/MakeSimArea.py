@@ -29,6 +29,8 @@ def MakeSimArea(DirName):
     os.makedirs(SimPath + "/sw_build", exist_ok = True)
     os.makedirs(SimPath + "/log", exist_ok = True)
     os.makedirs(SimPath + "/deliverables", exist_ok = True)
+    os.makedirs(SimPath + "/deliverables/shm", exist_ok = True)
+    os.makedirs(SimPath + "/deliverables/vcd", exist_ok = True)
 
     # TODO: Create makefile (includes common makefiles)
     with open(SimPath + "/makefile", 'w') as makefile:

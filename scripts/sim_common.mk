@@ -14,11 +14,11 @@ ifeq (${VENDOR}, Cadence)
 
     ifeq ($(NETLIST), 0)
 		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+RVFI
-		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -timescale 1ps/1ps worklib.tb_top
+		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -defparam tb_top.SymbolAddrs=\"${SIM_PATH}/sw_build/symbol_table.txt\" -timescale 1ps/1ps worklib.tb_top
 	else
 		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST +define+functional
 #		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST
-		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -timescale 1ps/1ps worklib.tb_top
+		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -defparam tb_top.SymbolAddrs=\"${SIM_PATH}/sw_build/symbol_table.txt\" -timescale 1ps/1ps worklib.tb_top
 	endif
 
 	ELAB_EXEC=ncelab
@@ -27,6 +27,8 @@ ifeq (${VENDOR}, Cadence)
 	SIM_GUI_OPTS=${SIM_OPTS} -gui -input ${SCRIPTS_DIR}/cadence_gui.tcl
 	SYN_EXEC=genus
 	SYN_OPTS=-f ${SCRIPTS_DIR}/genus/genus.tcl -no_gui -log log/genus -overwrite
+	POWER_EXEC=joules
+	POWER_OPTS=-f ${SCRIPTS_DIR}/joules/joules.tcl -no_gui -log log/joules -overwrite
 
 else
 	@echo Vendor <${VENDOR}> not supported by this makefile
@@ -46,11 +48,19 @@ endif
 TOP_FILES = $(addprefix ${RISCV_CRYPTO_RTL}/simple-system-top/, $(shell cat ${RISCV_CRYPTO_RTL}/simple-system-top/simple-system.f))
 TB_FILES = $(addprefix ${RISCV_CRYPTO_TBENCH}/, $(shell cat ${RISCV_CRYPTO_TBENCH}/tb.f))
 
+SYMBOLS_LIST="tc_aes128_set_encrypt_key
+SYMBOLS_LIST+=tc_aes192_set_encrypt_key
+SYMBOLS_LIST+=tc_aes256_set_encrypt_key
+SYMBOLS_LIST+=tc_aes_encrypt
+SYMBOLS_LIST+=sha256_compress
+SYMBOLS_LIST+=sha512_compress"
 
 sw:
 
 	@echo -e "\n---- Building VMEM file from <${SW_BUILD_PATH}/${PROG}>"
 	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile PROGRAM=${PROG} SW_BUILD_PATH=${SW_BUILD_PATH} SW_SRC_PATH=${SW_SRC_PATH} COMMON_DIR=${COMMON_DIR}
+	nm -S sw_build/${PROG}.elf > sw_build/nm.out
+	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$4) print $$4, $$1, $$2}' sw_build/nm.out > sw_build/symbol_table.txt
 
 comp:
 
@@ -88,6 +98,11 @@ netlist:
 
 	@echo -e "\n---- Running synthesis"
 	${SYN_EXEC} ${SYN_OPTS}
+
+power:
+
+	@echo -e "\n---- Running power analysis"
+	${POWER_EXEC} ${POWER_OPTS}
 
 clean:
 

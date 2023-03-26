@@ -34,7 +34,7 @@
 #include <tinycrypt/constants.h>
 #include <tinycrypt/utils.h>
 
-static void compress(unsigned int *iv, const uint8_t *data);
+static void sha256_compress(unsigned int *iv, const uint8_t *data);
 
 int tc_sha256_init(TCSha256State_t s)
 {
@@ -76,7 +76,7 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
     while (datalen-- > 0) {
         s->leftover[s->leftover_offset++] = *(data++);
         if (s->leftover_offset >= TC_SHA256_BLOCK_SIZE) {
-            compress(s->iv, s->leftover);
+            sha256_compress(s->iv, s->leftover);
             s->leftover_offset = 0;
             s->bits_hashed += (TC_SHA256_BLOCK_SIZE << 3);
         }
@@ -102,7 +102,7 @@ int tc_sha256_final(uint8_t *digest, TCSha256State_t s)
 		/* there is not room for all the padding in this block */
 		_set(s->leftover + s->leftover_offset, 0x00,
 		     sizeof(s->leftover) - s->leftover_offset);
-		compress(s->iv, s->leftover);
+		sha256_compress(s->iv, s->leftover);
 		s->leftover_offset = 0;
 	}
 
@@ -119,7 +119,7 @@ int tc_sha256_final(uint8_t *digest, TCSha256State_t s)
 	s->leftover[sizeof(s->leftover) - 8] = (uint8_t)(s->bits_hashed >> 56);
 
 	/* hash the padding and length */
-	compress(s->iv, s->leftover);
+	sha256_compress(s->iv, s->leftover);
 
 	/* copy the iv out to digest */
 	for (i = 0; i < TC_SHA256_STATE_BLOCKS; ++i) {
@@ -181,7 +181,7 @@ static inline unsigned int BigEndian(const uint8_t **c)
 }
 #endif
 
-static void compress(unsigned int *iv, const uint8_t *data)
+static void sha256_compress(unsigned int *iv, const uint8_t *data)
 {
     #ifndef SHA256_RISCV_ASM
 	unsigned int a, b, c, d, e, f, g, h;

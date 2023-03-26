@@ -17,7 +17,8 @@
 
 // Default clock frequency to 500 MHz
 `ifndef ClockPeriod
-  `define ClockPeriod 2ns
+  //`define ClockPeriod 2ns
+  `define ClockPeriod 2
 `endif
 
 module tb_top #(
@@ -40,12 +41,24 @@ module tb_top #(
   parameter bit                  DbgTriggerEn     = 1'b0,
   parameter bit                  ICacheECC        = 1'b0,
   parameter bit                  BranchPredictor  = 1'b0,
-  parameter                      SRAMInitFile     = "../MemFile.vmem"
-  
+  parameter                      SRAMInitFile     = "MemFile.vmem",
+  parameter                      SymbolAddrs      = "sw_build/symbol_table.txt"
+
 ) ( );
   
   bit clk;
   bit rst_n;
+
+  typedef struct {
+    string function_name;
+    int times_called = 0;
+    realtime start_times[$];
+    realtime end_times[$];
+    int start_addr;
+    int end_addr;
+  } symbol_info_t;
+
+  symbol_info_t symbol_info[int];  // Indexed by start_addrs
   
   typedef enum logic {CoreD} bus_host_e;
   typedef enum logic[1:0] {Ram, SimCtrl, Timer} bus_device_e;
@@ -55,8 +68,8 @@ module tb_top #(
     clk <= 1'b0;
     
     forever
-      #`ClockPeriod clk <= ~clk;
-  
+      #(`ClockPeriod/2 * 1ns) clk <= ~clk;
+
   end
   
   initial begin
@@ -114,6 +127,93 @@ module tb_top #(
     .rdata_o   (u_ibex_simple_system.device_rdata[SimCtrl])
   );
 
+  initial begin
+
+    symbol_info_t current_symbol;
+
+    realtime start_time;
+    realtime end_time;
+
+    int fd;
+    string line;
+
+    $timeformat(-9, 2, " ns");
+
+    fd = $fopen(SymbolAddrs, "r");
+
+    // Parse symbol table
+    while (!$feof(fd)) begin
+
+      symbol_info_t new_symbol;
+
+      $fgets(line, fd);
+
+      if (line != "") begin
+
+        $sscanf(line, "%s %h %h\n", new_symbol.function_name, new_symbol.start_addr, new_symbol.end_addr);
+
+        new_symbol.end_addr += new_symbol.start_addr - 2;  // Point to last instruction in function
+        symbol_info[new_symbol.start_addr] = new_symbol;
+
+        $display($sformatf("[Profiler] Parsed symbol <%s> start_addr <%0h> end_addr <%0h>", new_symbol.function_name, new_symbol.start_addr, new_symbol.end_addr));
+
+      end
+
+    end
+
+    foreach (symbol_info[i])
+      $display("%0d: %p", i, symbol_info[i]);
+
+    forever begin
+
+      bit[0:973] shm_name;
+
+      // Monitor RAM instruction port for start addresses in symbol table
+      while (1) begin
+
+        @(posedge u_ibex_simple_system.clk_sys);
+
+        if (symbol_info.exists(u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id)) begin
+
+          current_symbol = symbol_info[u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id];
+          symbol_info[current_symbol.start_addr].start_times.push_back($realtime());
+
+          $display("[Profiler] Fetched start of symbol <%s> addr <%0h> at <%0t>", current_symbol.function_name, u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id, $realtime());
+          break;
+
+        end
+
+      end
+
+      // Start dumping Ibex signals to VCD
+      shm_name = $sformatf("deliverables/shm/%s_%0d.shm", current_symbol.function_name, current_symbol.times_called);
+      $shm_open(shm_name);
+      $shm_probe(u_ibex_simple_system.u_top.u_ibex_top, "ASM");
+
+      // Monitor RAM instruction port for end address of current symbol
+      while (1) begin
+
+        @(posedge u_ibex_simple_system.clk_sys);
+
+        if (current_symbol.end_addr == u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id) begin
+
+          symbol_info[current_symbol.start_addr].end_times.push_back($realtime());
+          symbol_info[current_symbol.start_addr].times_called++;
+
+          $display("[Profiler] Fetched end of symbol <%s> addr <%0h> at <%0t>", current_symbol.function_name, u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id, $realtime());
+
+          $shm_close(shm_name);
+
+          break;
+
+        end
+
+      end
+
+    end
+
+  end
+
   `ifndef NETLIST
     function automatic longint unsigned mhpmcounter_get(int index);
       return u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
@@ -121,6 +221,8 @@ module tb_top #(
   `endif
 
   final begin
+
+    int fd;
 
     `ifndef NETLIST
       string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions"};
@@ -135,6 +237,35 @@ module tb_top #(
       $display("End of Netlist Simulation");
       $display("====================");
     `endif
+
+      $display("====================");
+      $display("Profiling Results");
+      $display("FunctionName_TimesCalled | StartTime (ns) | EndTime (ns) | ExecutionTime (ns)");
+      $display("====================");
+
+    $timeformat(-9, 2, "");
+
+    // Print out profiling file
+    fd = $fopen("deliverables/symbol_profiling.txt", "w");
+    $fdisplay(fd, "FunctionName_TimesCalled | StartTime (ns) | EndTime (ns) | ExecutionTime (ns)");
+
+    foreach (symbol_info[i]) begin
+
+      $display("%0d: %p", i, symbol_info[i]);
+
+      for (int j = 0; j < symbol_info[i].times_called; j++) begin
+
+        string line;
+        line = $sformatf("%s_%0d %t %t %t", symbol_info[i].function_name, j, symbol_info[i].start_times[j], 
+          symbol_info[i].end_times[j], symbol_info[i].end_times[j] - symbol_info[i].start_times[j]);
+        
+        $display(line);
+        $fdisplay(fd, line);
+
+      end
+
+    end
+
   end
 
 endmodule

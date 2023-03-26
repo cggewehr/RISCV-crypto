@@ -24,10 +24,11 @@ syn_opt;# -incremental
 ## 4) write reports & netlist
 report area          > deliverables/rpt_area.txt
 report timing        > deliverables/rpt_timing.txt
-report power         > deliverables/rpt_power.txt
+report power         > deliverables/rpt_power_no_vectors.txt
 report_gates         > deliverables/rpt_gates.txt
 report_clock_gating  > deliverables/rpt_clock_gating.txt
 write_hdl            > deliverables/ibex_top.v
+write_db               deliverables/genus.db
 
 exit
 
