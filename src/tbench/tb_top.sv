@@ -49,14 +49,14 @@ module tb_top #(
   bit clk;
   bit rst_n;
 
-  typedef struct {
+  class symbol_info_t;
     string function_name;
     int times_called = 0;
     realtime start_times[$];
     realtime end_times[$];
     int start_addr;
     int end_addr;
-  } symbol_info_t;
+  endclass
 
   symbol_info_t symbol_info[int];  // Indexed by start_addrs
   
@@ -145,6 +145,7 @@ module tb_top #(
     while (!$feof(fd)) begin
 
       symbol_info_t new_symbol;
+      new_symbol = new;
 
       $fgets(line, fd);
 
