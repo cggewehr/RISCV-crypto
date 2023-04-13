@@ -84,7 +84,8 @@ static inline void sub_bytes(uint8_t *s)
 {
 	unsigned int i;
 
-	for (i = 0; i < (Nb * Nk); ++i) {
+	//for (i = 0; i < (Nb * Nk); ++i) {
+	for (i = 0; i < (4 * Nb); ++i) {
 		s[i] = sbox[s[i]];
 	}
 }
@@ -101,7 +102,8 @@ static inline void mult_row_column(uint8_t *out, const uint8_t *in)
 
 static inline void mix_columns(uint8_t *s)
 {
-	uint8_t t[Nb*Nk];
+	//uint8_t t[Nb*Nk];
+	uint8_t t[4*Nb];
 
 	mult_row_column(t, s);
 	mult_row_column(&t[Nb], s+Nb);
@@ -116,7 +118,8 @@ static inline void mix_columns(uint8_t *s)
  */
 static inline void shift_rows(uint8_t *s)
 {
-	uint8_t t[Nb * Nk];
+	//uint8_t t[Nb * Nk];
+	uint8_t t[4 * Nb];
 
 	t[0]  = s[0]; t[1] = s[5]; t[2] = s[10]; t[3] = s[15];
 	t[4]  = s[4]; t[5] = s[9]; t[6] = s[14]; t[7] = s[3];
@@ -192,6 +195,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
     // t1: Wi+7 (only for AES-256)
     // t3: round counter
     // t4: pointer to round constant array
+    // t5: load/store temp
 
     asm volatile (
 
@@ -239,7 +243,8 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
         
         // Init round counter and round constant
         //"la t4, rconst  \n"
-        "li t3, " xstr(Nr) "  \n"
+        //"li t3, " xstr(Nr) "  \n"
+        "li t3, " xstr((Nb*Nr/Nk)) "  \n"
         "add t5, t0, t0  \n"
         
         // Compute Nk key schedule words per loop iteration
@@ -299,6 +304,12 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
             "sw a4,  8(a0)  \n"
             "sw a5, 12(a0)  \n"
             
+            // Finish early if this is the final iteration of the AES-256 key schedule
+            #ifdef TC_AES_256
+            "addi t5, t3, -1  \n"
+            "beq t5, x0, aes_key_schedule_end  \n"
+            #endif
+
             #ifdef TC_AES_192
             "sw a6, 16(a0)  \n"
             "sw a7, 20(a0)  \n"
@@ -323,6 +334,7 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
             "addi t3, t3, -1  \n"
             "bne t3, x0, aes_key_schedule_loop  \n"
         
+        "aes_key_schedule_end:  \n"
         #undef str
         #undef xstr
 
@@ -335,7 +347,8 @@ int tc_aes256_set_encrypt_key(TCAesKeySched_t s, const uint8_t *k)
 int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s)
 {
     #ifndef AES_RISCV_ASM
-	uint8_t state[Nk*Nb];
+	//uint8_t state[Nk*Nb];
+	uint8_t state[4*Nb];
 	unsigned int i;
     #endif
 
