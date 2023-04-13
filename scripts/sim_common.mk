@@ -117,6 +117,7 @@ clean:
 	rm -rf *.key
 	rm -rf xcelium.d
 	rm -rf waves.shm
+	rm -rf netlist_sim.shm
 	rm -rf log/*
 	rm -rf sw_build/*
 	rm -rf MemFile.vmem
