@@ -11,9 +11,34 @@
 
 
 INCS := -I$(COMMON_DIR) -I$(COMMON_DIR)/tinycrypt
-#DEFS := -DSHA256_RISCV_ASM -DTC_AES_128 -DAES_RISCV_ASM
-DEFS := -DSHA256_RISCV_ASM -DSHA512_RISCV_ASM -DTC_AES_256 -DAES_RISCV_ASM
-#DEFS := 
+
+#DEFS := -DSHA256_RISCV_ASM -DSHA512_RISCV_ASM -DTC_AES_256 -DAES_RISCV_ASM
+ifdef SHA256_ASM
+	DEFS += -DSHA256_RISCV_ASM
+endif
+
+ifdef SHA512_ASM
+	DEFS += -DSHA512_RISCV_ASM
+endif
+
+ifdef AES_ASM
+	DEFS += -DAES_RISCV_ASM
+endif
+
+AES ?= 128
+
+ifeq ($(AES), 128)
+	DEFS += -DTC_AES_128
+endif
+
+ifeq ($(AES), 192)
+	DEFS += -DTC_AES_192
+endif
+
+ifeq ($(AES), 256)
+	DEFS += -DTC_AES_256
+endif
+
 ARCH ?= rv32imc_zicsr_zkne_zknh
 CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -g -Os -fvisibility=hidden -ffreestanding $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
 CC = riscv64-elf-gcc
@@ -60,7 +85,6 @@ ${SW_BUILD_PATH}/%.dis: ${SW_BUILD_PATH}/%.elf
 # is widely available.
 ${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.bin
 	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o ${SW_BUILD_PATH}/../MemFile.vmem -vmem
-#   TODO: Print to a txt file in sim area which $PROG MemFile.vmem is associated to
 
 ${SW_BUILD_PATH}/%.bin: ${SW_BUILD_PATH}/%.elf
 	$(OBJCOPY) -O binary $^ $@
@@ -69,7 +93,7 @@ endif
 
 #$(OBJS): $(SW_BUILD_PATH)/%.o: $(SW_SRC_PATH)/$(PROGRAM)/%.c 
 $(SW_BUILD_PATH)/%.o: %.c 
-	$(CC) $(CFLAGS) -MMD -c -o $@ $<
+	$(CC) $(CFLAGS) -MMD -fstack-usage -c -o $@ $<
 
 #$(SW_BUILD_PATH)/%.o: $(COMMON_DIR)/%.c
 $(SW_BUILD_PATH)/%.o: %.S

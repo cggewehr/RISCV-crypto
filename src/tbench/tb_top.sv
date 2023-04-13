@@ -29,7 +29,11 @@ module tb_top #(
   parameter bit                  PMPEnable        = 1'b0,
   parameter int unsigned         PMPGranularity   = 0,
   parameter int unsigned         PMPNumRegions    = 4,
+  `ifdef SYNTHESIS
   parameter int unsigned         MHPMCounterNum   = 0,
+  `else
+  parameter int unsigned         MHPMCounterNum   = 10,
+  `endif
   parameter int unsigned         MHPMCounterWidth = 40,
   parameter bit                  RV32E            = 1'b0,
   parameter ibex_pkg::rv32m_e    RV32M            = `RV32M,
@@ -127,6 +131,7 @@ module tb_top #(
     .rdata_o   (u_ibex_simple_system.device_rdata[SimCtrl])
   );
 
+  `ifndef NETLIST
   initial begin
 
     symbol_info_t current_symbol;
@@ -163,11 +168,9 @@ module tb_top #(
     end
 
     foreach (symbol_info[i])
-      $display("%0d: %p", i, symbol_info[i]);
+      $display("[Profiler] %0d: %p", i, symbol_info[i]);
 
     forever begin
-
-      bit[0:973] shm_name;
 
       // Monitor RAM instruction port for start addresses in symbol table
       while (1) begin
@@ -186,24 +189,25 @@ module tb_top #(
 
       end
 
-      // Start dumping Ibex signals to VCD
-      shm_name = $sformatf("deliverables/shm/%s_%0d.shm", current_symbol.function_name, current_symbol.times_called);
-      $shm_open(shm_name);
-      $shm_probe(u_ibex_simple_system.u_top.u_ibex_top, "ASM");
-
       // Monitor RAM instruction port for end address of current symbol
       while (1) begin
+
+        int start_addr, end_addr;
+
+        start_addr = current_symbol.start_addr;
+        end_addr = current_symbol.end_addr;
 
         @(posedge u_ibex_simple_system.clk_sys);
 
         if (current_symbol.end_addr == u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id) begin
+        //if (!(u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id inside {[start_addr:end_addr]})) begin
 
           symbol_info[current_symbol.start_addr].end_times.push_back($realtime());
           symbol_info[current_symbol.start_addr].times_called++;
 
           $display("[Profiler] Fetched end of symbol <%s> addr <%0h> at <%0t>", current_symbol.function_name, u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id, $realtime());
 
-          $shm_close(shm_name);
+          print_counters();
 
           break;
 
@@ -214,11 +218,34 @@ module tb_top #(
     end
 
   end
+  `endif
+
+  `ifdef NETLIST
+  initial begin
+    $shm_open("deliverables/shm/netlist_sim.shm");
+    $shm_probe(u_ibex_simple_system.u_top.u_ibex_top, "ASM");
+  end
+  `endif
 
   `ifndef NETLIST
-    function automatic longint unsigned mhpmcounter_get(int index);
-      return u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
-    endfunction
+  function automatic longint unsigned mhpmcounter_get(int index);
+    return u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[index];
+  endfunction
+
+  function void print_counters();
+
+    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions"};
+
+    $display("====================");
+    $display("Performance Counters");
+    $display("====================");
+
+    foreach (reg_names[reg_index])
+      $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index));
+    
+    $display("====================");
+
+  endfunction
   `endif
 
   final begin
@@ -226,46 +253,45 @@ module tb_top #(
     int fd;
 
     `ifndef NETLIST
-      string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions"};
-
-      $display("Performance Counters");
       $display("====================");
-
-      foreach (reg_names[reg_index])
-        $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index));
+      $display("End of Functional Simulation");
+      $display("====================");
+      print_counters();
     `else
       $display("====================");
       $display("End of Netlist Simulation");
       $display("====================");
     `endif
 
+    `ifndef NETLIST
       $display("====================");
       $display("Profiling Results");
       $display("FunctionName_TimesCalled | StartTime (ns) | EndTime (ns) | ExecutionTime (ns)");
       $display("====================");
 
-    $timeformat(-9, 2, "");
+      $timeformat(-9, 2, "");
 
-    // Print out profiling file
-    fd = $fopen("deliverables/symbol_profiling.txt", "w");
-    $fdisplay(fd, "FunctionName_TimesCalled | StartTime (ns) | EndTime (ns) | ExecutionTime (ns)");
+      // Print out profiling file
+      fd = $fopen("deliverables/symbol_profiling.txt", "w");
+      $fdisplay(fd, "FunctionName_TimesCalled | StartTime (ns) | EndTime (ns) | ExecutionTime (ns)");
 
-    foreach (symbol_info[i]) begin
+      foreach (symbol_info[i]) begin
 
-      $display("%0d: %p", i, symbol_info[i]);
+        $display("%0d: %p", i, symbol_info[i]);
 
-      for (int j = 0; j < symbol_info[i].times_called; j++) begin
+        for (int j = 0; j < symbol_info[i].times_called; j++) begin
 
-        string line;
-        line = $sformatf("%s_%0d %t %t %t", symbol_info[i].function_name, j, symbol_info[i].start_times[j], 
-          symbol_info[i].end_times[j], symbol_info[i].end_times[j] - symbol_info[i].start_times[j]);
+          string line;
+          line = $sformatf("%s_%0d %t %t %t", symbol_info[i].function_name, j, symbol_info[i].start_times[j], 
+            symbol_info[i].end_times[j], symbol_info[i].end_times[j] - symbol_info[i].start_times[j]);
         
-        $display(line);
-        $fdisplay(fd, line);
+          $display(line);
+          $fdisplay(fd, line);
+
+        end
 
       end
-
-    end
+      `endif
 
   end
 
