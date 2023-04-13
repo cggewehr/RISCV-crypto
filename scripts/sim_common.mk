@@ -52,7 +52,13 @@ SYMBOLS_LIST="tc_aes128_set_encrypt_key
 SYMBOLS_LIST+=tc_aes192_set_encrypt_key
 SYMBOLS_LIST+=tc_aes256_set_encrypt_key
 SYMBOLS_LIST+=tc_aes_encrypt
+SYMBOLS_LIST+=tc_sha256_init
+SYMBOLS_LIST+=tc_sha256_update
+SYMBOLS_LIST+=tc_sha256_final
 SYMBOLS_LIST+=sha256_compress
+SYMBOLS_LIST+=tc_sha512_init
+SYMBOLS_LIST+=tc_sha512_update
+SYMBOLS_LIST+=tc_sha512_final
 SYMBOLS_LIST+=sha512_compress"
 
 sw:
@@ -114,7 +120,10 @@ clean:
 	rm -rf log/*
 	rm -rf sw_build/*
 	rm -rf MemFile.vmem
+	rm -rf symbol_table.txt
 	rm -rf deliverables/*
+	mkdir deliverables/vcd
+	mkdir deliverables/shm
 	rm -rf fv
 	rm -rf genus
 	rm -rf genus.*
