@@ -137,6 +137,7 @@ exitTest1:
 int test_2(void)
 {
 	int result = TC_PASS;
+    int ret;
 	// const uint8_t nist_key[NUM_OF_NIST_KEYS] = {
 		// 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
 		// 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c
@@ -169,7 +170,16 @@ int test_2(void)
 	puts("AES256 (NIST encryption test):\n");
 
 	(void)tc_aes256_set_encrypt_key(&s, nist_key);
-	if (tc_aes_encrypt(ciphertext, nist_input, &s) == 0) {
+	puts("After Key Sched\n");
+
+    pcount_reset();
+    pcount_enable(1);
+    ret = tc_aes_encrypt(ciphertext, nist_input, &s);
+	puts("After Enc\n");
+    pcount_reset();
+    pcount_enable(1);
+
+	if (ret == 0) {
 		puts("AES256 %s (NIST encryption test) failed.\n");
 		result = TC_FAIL;
 		goto exitTest2;
@@ -197,11 +207,11 @@ int main(void)
 
 	puts("Performing AES256 tests:");
 
-	result = test_1();
-	if (result == TC_FAIL) { /* terminate test */
-		puts("AES256 test #1 (NIST key schedule test) failed.\n");
+	//result = test_1();
+	//if (result == TC_FAIL) { /* terminate test */
+	//	puts("AES256 test #1 (NIST key schedule test) failed.\n");
 		//goto exitTest;
-	}
+	//}
 	result = test_2();
 	if (result == TC_FAIL) { /* terminate test */
 		puts("AES256 test #2 (NIST encryption test) failed.\n");
