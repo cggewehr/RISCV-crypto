@@ -27,8 +27,8 @@ ifeq (${VENDOR}, Cadence)
 	SIM_GUI_OPTS=${SIM_OPTS} -gui -input ${SCRIPTS_DIR}/cadence_gui.tcl
 	SYN_EXEC=genus
 	SYN_OPTS=-f ${SCRIPTS_DIR}/genus/genus.tcl -no_gui -log log/genus -overwrite
-	POWER_EXEC=joules
-	POWER_OPTS=-f ${SCRIPTS_DIR}/joules/joules.tcl -no_gui -log log/joules -overwrite
+	POWER_EXEC=genus
+	POWER_OPTS=-f ${SCRIPTS_DIR}/genus/power_analysis.tcl -no_gui -log log/genus_pa -overwrite
 
 else
 	@echo Vendor <${VENDOR}> not supported by this makefile
@@ -60,6 +60,16 @@ SYMBOLS_LIST+=tc_sha512_init
 SYMBOLS_LIST+=tc_sha512_update
 SYMBOLS_LIST+=tc_sha512_final
 SYMBOLS_LIST+=sha512_compress"
+
+START_TIME?=0ns
+END_TIME?=0ns
+
+export POWER_ANALYSIS_DB_FILE=${SIM_PATH}/deliverables/genus.mapped.db
+export POWER_ANALYSIS_SHM_FILE=${SIM_PATH}/deliverables/shm/netlist_sim.shm
+export POWER_ANALYSIS_REPORT_DIR=${SIM_PATH}/deliverables
+export POWER_ANALYSIS_REPORT_NAME=${SIM_NAME}
+export POWER_ANALYSIS_START_TIME=${START_TIME}
+export POWER_ANALYSIS_END_TIME=${END_TIME}
 
 sw:
 
@@ -122,7 +132,7 @@ clean:
 	rm -rf sw_build/*
 	rm -rf MemFile.vmem
 	rm -rf symbol_table.txt
-	rm -rf deliverables/*
+#	rm -rf deliverables/*
 	mkdir deliverables/vcd
 	mkdir deliverables/shm
 	rm -rf fv

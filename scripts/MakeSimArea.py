@@ -40,6 +40,7 @@ def MakeSimArea(DirName):
         makefile.write(f"RISCV_CRYPTO_TBENCH={RootPath + '/src/tbench'}\n")
         makefile.write(f"SW_SRC_PATH={RootPath + '/src/sw'}\n")
         makefile.write(f"SIM_PATH={SimPath}\n")
+        makefile.write(f"SIM_NAME={DirName}\n")
         makefile.write(f"SW_BUILD_PATH={SimPath + '/sw_build'}\n")
         makefile.write(f"COMMON_DIR={RootPath + '/src/sw/common'}\n")
         makefile.write(f"VENDOR?=Cadence\n")
