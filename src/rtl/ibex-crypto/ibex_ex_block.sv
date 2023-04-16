@@ -205,7 +205,9 @@ module ibex_ex_block #(
   // SHA2 EXTENSION //
   ////////////////////
 
-  sha2_unit u_sha2_unit (
+  sha2_unit #(
+    .LOGIC_GATING(1)
+  ) u_sha2_unit (
     .sha2_en_i(sha2_en_i),
     .sha2_op_i(sha2_op_i),
     .op_a_i(alu_operand_a_i),
