@@ -32,7 +32,7 @@ module tb_top #(
   `ifdef SYNTHESIS
   parameter int unsigned         MHPMCounterNum   = 0,
   `else
-  parameter int unsigned         MHPMCounterNum   = 10,
+  parameter int unsigned         MHPMCounterNum   = 13,
   `endif
   parameter int unsigned         MHPMCounterWidth = 40,
   parameter bit                  RV32E            = 1'b0,
@@ -142,6 +142,8 @@ module tb_top #(
     int fd;
     string line;
 
+    string ctr_reset_exclusion_list[] = {"tc_sha256_update", "tc_sha256_final", "tc_sha512_update", "tc_sha512_final"};
+
     $timeformat(-9, 2, " ns");
 
     fd = $fopen(SymbolAddrs, "r");
@@ -172,7 +174,7 @@ module tb_top #(
 
     forever begin
 
-      // Monitor RAM instruction port for start addresses in symbol table
+      // Monitor PC register for start addresses in symbol table
       while (1) begin
 
         @(posedge u_ibex_simple_system.clk_sys);
@@ -183,13 +185,20 @@ module tb_top #(
           symbol_info[current_symbol.start_addr].start_times.push_back($realtime());
 
           $display("[Profiler] Fetched start of symbol <%s> addr <%0h> at <%0t>", current_symbol.function_name, u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id, $realtime());
+
+          if (!(current_symbol.function_name inside {ctr_reset_exclusion_list})) begin
+            reset_counters();
+            #1ps;
+            print_counters();
+          end
+
           break;
 
         end
 
       end
 
-      // Monitor RAM instruction port for end address of current symbol
+      // Monitor PC register for end address of current symbol
       while (1) begin
 
         int start_addr, end_addr;
@@ -234,7 +243,7 @@ module tb_top #(
 
   function void print_counters();
 
-    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions"};
+    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions", "Multiplier Busy", "Divider Busy"};
 
     $display("====================");
     $display("Performance Counters");
@@ -246,6 +255,21 @@ module tb_top #(
     $display("====================");
 
   endfunction
+
+  task reset_counters();
+
+    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions", "Multiplier Busy", "Divider Busy"};
+
+    $display("Reseting Performance Counters");
+
+    foreach (reg_names[reg_index])
+      $xm_deposit($sformatf("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.gen_cntrs[%0d].gen_imp.mcounters_variable_i.counter_d[31:0]", reg_index), "32'd0");
+
+    $xm_deposit("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mcycle_counter_i.counter_d[31:0]", "32'd0"); 
+    $xm_deposit("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.minstret_counter_i.counter_d[31:0]", "32'd0"); 
+ 
+  endtask
+
   `endif
 
   final begin
