@@ -128,10 +128,10 @@ static inline void shift_rows(uint8_t *s)
 	(void) _copy(s, sizeof(t), t, sizeof(t));
 }
 
-const unsigned int rconst[Nr+1] = RCON;  // Defined in aes.h
+const unsigned int rconst[RCON_DIM+1] = RCON;  // Defined in aes.h
 
 #else
-const uint8_t rconst[Nr] = RCON_ASM;  // Defined in aes.h
+const uint8_t rconst[RCON_DIM] = RCON_ASM;  // Defined in aes.h
 #endif
 
 #ifdef TC_AES_128

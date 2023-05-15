@@ -60,16 +60,19 @@ extern "C" {
     #define Nr (10) /* number of rounds */
     #define	RCON {0x00000000, 0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000}
     #define	RCON_ASM {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36}
+    #define RCON_DIM 10
 #elif TC_AES_192
     #define Nk (6)  /* number of 32-bit words comprising the key */
     #define Nr (12) /* number of rounds */
     #define	RCON {0x00000000, 0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000}
     #define	RCON_ASM {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+    #define RCON_DIM 8
 #elif TC_AES_256
     #define Nk (8)  /* number of 32-bit words comprising the key */
     #define Nr (14) /* number of rounds */
     #define	RCON {0x00000000, 0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000, 0x20000000, 0x40000000}
     #define	RCON_ASM {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40}
+    #define RCON_DIM 7
 #endif
 
 #define Nb (4)  /* number of columns (32-bit words) comprising the state */
