@@ -64,13 +64,13 @@ unsigned int test_1(void)
         uint8_t digest[32];
         struct tc_sha256_state_struct s;
 
-        pcount_reset();
-        pcount_enable(1);
+        //pcount_reset();
+        //pcount_enable(1);
         (void)tc_sha256_init(&s);
         tc_sha256_update(&s, (const uint8_t *) m, strlen(m));
         (void)tc_sha256_final(digest, &s);
-        pcount_reset();
-        pcount_enable(0);
+        //pcount_reset();
+        //pcount_enable(0);
 
         result = check_result(1, expected, sizeof(expected),
 			      digest, sizeof(digest));
@@ -87,9 +87,10 @@ unsigned int test_1(void)
 int main(void) {
         unsigned int result = TC_PASS;
 
-        pcount_enable(0);
-        pcount_reset();
+        //pcount_enable(0);
+        //pcount_reset();
         pcount_enable(1);
+        data_ind_timing_enable(1);
 
         puts("Performing SHA256 tests (NIST tests vectors):\n\n");
         result = test_1();

@@ -91,11 +91,11 @@ int test_1(void)
 
 	puts("AES128 (NIST key schedule test):\n");
 
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
     ret = tc_aes128_set_encrypt_key(&s, nist_key);
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
 
 	if (ret== 0) {
 		puts("AES128 test (NIST key schedule test) failed.\n");
@@ -139,17 +139,17 @@ int test_2(void)
 
 	puts("AES128 (NIST encryption test):\n");
 
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
 	(void)tc_aes128_set_encrypt_key(&s, nist_key);
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
 
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
     ret = tc_aes_encrypt(ciphertext, nist_input, &s);
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
 
 	if (ret == 0) {
 		puts("AES128 %s (NIST encryption test) failed.\n");
@@ -173,6 +173,8 @@ exitTest2:
 int main(void)
 {
 	int result = TC_PASS;
+
+    data_ind_timing_enable(1);
 
 	result = test_2();
 	if (result == TC_FAIL) { /* terminate test */

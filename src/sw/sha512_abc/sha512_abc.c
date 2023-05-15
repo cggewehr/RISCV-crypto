@@ -68,13 +68,13 @@ unsigned int test_1(void)
         uint8_t digest[TC_SHA512_DIGEST_SIZE];
         struct tc_sha512_state_struct s;
 
-        pcount_reset();
-        pcount_enable(1);
+        //pcount_reset();
+        //pcount_enable(1);
         (void)tc_sha512_init(&s);
         tc_sha512_update(&s, (const uint8_t *) m, strlen(m));
         (void)tc_sha512_final(digest, &s);
-        pcount_reset();
-        pcount_enable(0);
+        //pcount_reset();
+        //pcount_enable(0);
 
         result = check_result(1, expected, sizeof(expected),
                 digest, sizeof(digest));
@@ -90,6 +90,8 @@ int main(void)
 {
         unsigned int result = TC_PASS;
         puts("Performing SHA512 tests (NIST tests vectors):");
+
+        data_ind_timing_enable(1);
 
         result = test_1();
         if (result == TC_FAIL) {
