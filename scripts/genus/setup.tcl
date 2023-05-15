@@ -23,29 +23,33 @@ set_db syn_map_effort high
 set_db syn_opt_effort high
 
 #===============================================================================
-#  Load TSMC 28nm libraries
+#  Load STM 28nm libraries
 #===============================================================================
-#Set liberty
-set_db library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_LR@2.0@20130411.0/libs/C28SOI_SC_12_CORE_LR_ss28_0.90V_125C.lib \
-                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_PR_LR@2.0@20130412.0/libs/C28SOI_SC_12_PR_LR_tt28_1.00V_25C.lib \
-                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/libs/C28SOI_SC_12_CLK_LR_tt28_1.00V_25C.lib"
-             
-#set LEF           
+
+# Set liberty
+#set_db library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_LR@2.0@20130411.0/libs/C28SOI_SC_12_CORE_LR_ss28_0.75V_125C.lib \
+#                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_PR_LR@2.0@20130412.0/libs/C28SOI_SC_12_PR_LR_ss28_0.75V_125C.lib \
+#                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/libs/C28SOI_SC_12_CLK_LR_ss28_0.75V_125C.lib"
+set_db library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_CORE_LL@2.1@20131011.0/libs/C28SOI_SC_8_CORE_LL_ss28_0.75V_0.00V_0.00V_0.00V_125C.lib \
+                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_PR_LL@2.1@20131028.1/libs/C28SOI_SC_8_PR_LL_ss28_0.75V_0.00V_0.00V_0.00V_125C.lib \
+                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_CLK_LL@2.2@20131011.0/libs/C28SOI_SC_8_CLK_LL_ss28_0.75V_0.00V_0.00V_0.00V_125C.lib"
+
+# Set LEF
 #set_db lef_library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/SiteDefKit_cmos28@1.4@20120720.0/LEF/sites.lef \
-#                    ../../psynth/28nm/lef/technology.12T.lef \
+#                    /soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit_cmos028_6U1x_2U2x_2T8x_LB@4.2.1/LEF/technology.12T.lef \
 #                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_LR@2.0@20130411.0/CADENCE/LEF/C28SOI_SC_12_CORE_LR_soc.lef \
 #                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_PR_LR@2.0@20130412.0/CADENCE/LEF/C28SOI_SC_12_PR_LR_soc.lef \
 #                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/CADENCE/LEF/C28SOI_SC_12_CLK_LR_soc.lef"
 set_db lef_library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/SiteDefKit_cmos28@1.4@20120720.0/LEF/sites.lef \
-                    /soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit_cmos028_6U1x_2U2x_2T8x_LB@4.2.1/LEF/technology.12T.lef \
-                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_LR@2.0@20130411.0/CADENCE/LEF/C28SOI_SC_12_CORE_LR_soc.lef \
-                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_PR_LR@2.0@20130412.0/CADENCE/LEF/C28SOI_SC_12_PR_LR_soc.lef \
-                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/CADENCE/LEF/C28SOI_SC_12_CLK_LR_soc.lef"
+                    /soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit_cmos028_6U1x_2U2x_2T8x_LB@4.2.1/LEF/technology.8T.lef \
+                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_CORE_LL@2.1@20131011.0/CADENCE/LEF/C28SOI_SC_8_CORE_LL_soc.lef \
+                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_PR_LL@2.1@20131028.1/CADENCE/LEF/C28SOI_SC_8_PR_LL_soc.lef \
+                    /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_CLK_LL@2.2@20131011.0/CADENCE/LEF/C28SOI_SC_8_CLK_LL_soc.lef"
 
-#Set captable
+# Set captable
 set_db cap_table_file "/soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit_cmos028_6U1x_2U2x_2T8x_LB@4.2.1/CAP_TABLE/FuncRCmax.captable"
 
-#Set PLE
+# Set PLE
 set_db interconnect_mode ple
 
 # Reads parameter file and outputs parameter string in Genus expected format
