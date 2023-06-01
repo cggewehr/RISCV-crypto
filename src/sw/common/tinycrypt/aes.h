@@ -77,7 +77,7 @@ extern "C" {
 
 #define Nb (4)  /* number of columns (32-bit words) comprising the state */
 
-#define TC_AES_BLOCK_SIZE (Nb*Nk)
+#define TC_AES_BLOCK_SIZE (4*Nb)
 #define TC_AES_KEY_SIZE (Nb*Nk)
 
 typedef struct tc_aes_key_sched_struct {
