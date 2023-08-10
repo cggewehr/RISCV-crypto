@@ -9,9 +9,6 @@
 #COMMON_OBJS = ${COMMON_SRCS:.c=.o}
 #COMMON_OBJS := $(patsubst $(COMMON_DIR)%, $(SW_BUILD_PATH)%, ${COMMON_OBJS})
 
-
-INCS := -I$(COMMON_DIR) -I$(COMMON_DIR)/tinycrypt
-
 #DEFS := -DSHA256_RISCV_ASM -DSHA512_RISCV_ASM -DTC_AES_256 -DAES_RISCV_ASM
 ifdef SHA256_ASM
 	DEFS += -DSHA256_RISCV_ASM
@@ -61,8 +58,11 @@ OBJS := $(notdir ${C_SRCS:.c=.o} ${ASM_SRCS:.S=.o})
 OBJS := $(addprefix ${SW_BUILD_PATH}/, ${OBJS})
 DEPS = $(OBJS:%.o=%.d)
 
+INCS := -I$(COMMON_DIR) -I$(COMMON_DIR)/tinycrypt
+
 ifdef PROG
-	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).bin $(PROG).dis
+#	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).bin $(PROG).dis
+	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).dis
 	OUTFILES := $(addprefix ${SW_BUILD_PATH}/, ${OUTFILES})
 else
 	OUTFILES := $(OBJS)
@@ -83,11 +83,15 @@ ${SW_BUILD_PATH}/%.dis: ${SW_BUILD_PATH}/%.elf
 # XXX: This could be replaced by objcopy once
 # https://sourceware.org/bugzilla/show_bug.cgi?id=19921
 # is widely available.
-${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.bin
-	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o ${SW_BUILD_PATH}/../MemFile.vmem -vmem
+#${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.bin
+${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.elf
+#	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o ${SW_BUILD_PATH}/../MemFile.vmem -vmem
+#   Remove ram offset added in linker script (see $(LINKER_SCRIPT))
+	$(OBJCOPY) -O verilog --change-addresses "-0x100000" --verilog-data-width=4 -R .debug_* -R .comment $^ $@
+	cp $@ ${SW_BUILD_PATH}/../MemFile.vmem
 
-${SW_BUILD_PATH}/%.bin: ${SW_BUILD_PATH}/%.elf
-	$(OBJCOPY) -O binary $^ $@
+#${SW_BUILD_PATH}/%.bin: ${SW_BUILD_PATH}/%.elf
+#	$(OBJCOPY) -O binary $^ $@
 
 endif
 
@@ -97,7 +101,7 @@ $(SW_BUILD_PATH)/%.o: %.c
 
 #$(SW_BUILD_PATH)/%.o: $(COMMON_DIR)/%.c
 $(SW_BUILD_PATH)/%.o: %.S
-	$(CC) $(CFLAGS) -MMD -c -o $@ $<
+	$(CC) $(CFLAGS) -MMD -fstack-usage -c -o $@ $<
 
 clean:
 	$(RM) -f $(OBJS) $(DEPS)
