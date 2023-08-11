@@ -60,7 +60,8 @@ SYMBOLS_LIST+=sha256_compress
 SYMBOLS_LIST+=tc_sha512_init
 SYMBOLS_LIST+=tc_sha512_update
 SYMBOLS_LIST+=tc_sha512_final
-SYMBOLS_LIST+=sha512_compress"
+SYMBOLS_LIST+=sha512_compress
+SYMBOLS_LIST+=ascon_core"
 
 START_TIME?=0ns
 END_TIME?=0ns
@@ -76,8 +77,8 @@ sw:
 
 	@echo -e "\n---- Building VMEM file from <${SW_BUILD_PATH}/${PROG}>"
 	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile PROGRAM=${PROG} SW_BUILD_PATH=${SW_BUILD_PATH} SW_SRC_PATH=${SW_SRC_PATH} COMMON_DIR=${COMMON_DIR}
-	nm -S sw_build/${PROG}.elf > sw_build/nm.out
-	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$4) print $$4, $$1, $$2}' sw_build/nm.out > sw_build/symbol_table.txt
+	nm sw_build/${PROG}.elf > sw_build/nm.out
+	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$3) print $$3, $$1}' sw_build/nm.out > sw_build/symbol_table.txt
 
 comp:
 

@@ -19,7 +19,7 @@ module ibex_cs_registers #(
   parameter bit               DummyInstructions = 1'b0,
   parameter bit               ShadowCSR         = 1'b0,
   parameter bit               ICache            = 1'b0,
-  parameter int unsigned      MHPMCounterNum    = 10,
+  parameter int unsigned      MHPMCounterNum    = 18,
   parameter int unsigned      MHPMCounterWidth  = 40,
   parameter bit               PMPEnable         = 0,
   parameter int unsigned      PMPGranularity    = 0,
@@ -28,6 +28,11 @@ module ibex_cs_registers #(
   parameter ibex_pkg::rv32m_e RV32M             = ibex_pkg::RV32MFast,
   parameter ibex_pkg::rv32b_e RV32B             = ibex_pkg::RV32BNone
 ) (
+
+  //input logic
+
+  input logic [1:0] lsu_type,
+
   // Clock and Reset
   input  logic                 clk_i,
   input  logic                 rst_ni,
@@ -119,7 +124,7 @@ module ibex_cs_registers #(
   input  logic                 mem_store_i,                 // store to memory in this cycle
   input  logic                 dside_wait_i,                // core waiting for the dside
   input  logic                 mul_wait_i,                  // core waiting for multiply
-  input  logic                 div_wait_i                   // core waiting for divide
+  input  logic                 div_wait_i                   // core waiting for divide 
 );
 
   import ibex_pkg::*;
@@ -1231,6 +1236,31 @@ module ibex_cs_registers #(
     end
   end
 
+ //lsu reg counters:
+
+  reg lsu_type_ML00, lsu_type_ML01, lsu_type_ML10, lsu_type_MS00, lsu_type_MS01, lsu_type_MS10;
+
+  // increment lsu counters
+always @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      lsu_type_ML00=1'b0;
+      lsu_type_ML01=1'b0;
+      lsu_type_ML10=1'b0;
+      lsu_type_MS00=1'b0;
+      lsu_type_MS01=1'b0;
+      lsu_type_MS10=1'b0;
+    end else begin
+    lsu_type_ML00 = mem_load_i && (lsu_type==2'b00);
+    lsu_type_ML01 = mem_load_i && (lsu_type==2'b01);
+    lsu_type_ML10 = mem_load_i && (lsu_type==2'b10);
+    lsu_type_MS00 = mem_store_i && (lsu_type==2'b00);
+    lsu_type_MS01 = mem_store_i && (lsu_type==2'b01);
+    lsu_type_MS10 = mem_store_i && (lsu_type==2'b10);
+
+  end
+end
+
+
   // event selection (hardwired) & control
   always_comb begin : gen_mhpmcounter_incr
 
@@ -1257,7 +1287,14 @@ module ibex_cs_registers #(
     mhpmcounter_incr[10] = instr_ret_compressed_i; // num of compressed instr
     mhpmcounter_incr[11] = mul_wait_i;             // cycles waiting for multiply
     mhpmcounter_incr[12] = div_wait_i;             // cycles waiting for divide
+    mhpmcounter_incr[13] = lsu_type_MS00;          //counter mem_load_i && (lsu_type==2'b00);
+    mhpmcounter_incr[14] = lsu_type_MS01;          //counter mem_load_i && (lsu_type==2'b01);
+    mhpmcounter_incr[15] = lsu_type_MS10;          //counter mem_load_i && (lsu_type==2'b10);
+    mhpmcounter_incr[16] = lsu_type_ML00;          //counter mem_store_i && (lsu_type==2'b00);
+    mhpmcounter_incr[17] = lsu_type_ML01;          //counter mem_store_i && (lsu_type==2'b01);
+    mhpmcounter_incr[18] = lsu_type_ML10;          //counter mem_store_i && (lsu_type==2'b10);
   end
+
 
   // event selector (hardwired, 0 means no event)
   always_comb begin : gen_mhpmevent

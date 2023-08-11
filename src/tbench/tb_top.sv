@@ -32,7 +32,7 @@ module tb_top #(
   `ifdef SYNTHESIS
   parameter int unsigned         MHPMCounterNum   = 0,
   `else
-  parameter int unsigned         MHPMCounterNum   = 13,
+  parameter int unsigned         MHPMCounterNum   = 18,
   `endif
   parameter int unsigned         MHPMCounterWidth = 40,
   parameter bit                  RV32E            = 1'b0,
@@ -60,6 +60,13 @@ module tb_top #(
     realtime end_times[$];
     int start_addr;
     int end_addr;
+  endclass
+  
+  class counters_info_t;
+    string function_name;
+    int start_addr;
+    int ret_addr;
+    longint unsigned counters[$];
   endclass
 
   symbol_info_t symbol_info[int];  // Indexed by start_addrs
@@ -135,9 +142,15 @@ module tb_top #(
   initial begin
 
     symbol_info_t current_symbol;
+    counters_info_t counters;
+    int current_ret_addr;
+    int prev_addr;
+
+    counters_info_t saved_counters [$];
 
     realtime start_time;
     realtime end_time;
+    int start_addr, end_addr;
 
     int fd;
     string line;
@@ -158,12 +171,11 @@ module tb_top #(
 
       if (line != "") begin
 
-        $sscanf(line, "%s %h %h\n", new_symbol.function_name, new_symbol.start_addr, new_symbol.end_addr);
+        $sscanf(line, "%s %h\n", new_symbol.function_name, new_symbol.start_addr);
 
-        new_symbol.end_addr += new_symbol.start_addr - 2;  // Point to last instruction in function
         symbol_info[new_symbol.start_addr] = new_symbol;
 
-        $display($sformatf("[Profiler] Parsed symbol <%s> start_addr <%0h> end_addr <%0h>", new_symbol.function_name, new_symbol.start_addr, new_symbol.end_addr));
+        $display($sformatf("[Profiler] Parsed symbol <%s> start_addr <%0h>", new_symbol.function_name, new_symbol.start_addr));
 
       end
 
@@ -173,56 +185,48 @@ module tb_top #(
       $display("[Profiler] %0d: %p", i, symbol_info[i]);
 
     forever begin
-
       // Monitor PC register for start addresses in symbol table
-      while (1) begin
 
         @(posedge u_ibex_simple_system.clk_sys);
+        if (symbol_info.exists(u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata)) begin
 
-        if (symbol_info.exists(u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id)) begin
+          current_symbol = symbol_info[u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata];
 
-          current_symbol = symbol_info[u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id];
           symbol_info[current_symbol.start_addr].start_times.push_back($realtime());
 
-          $display("[Profiler] Fetched start of symbol <%s> addr <%0h> at <%0t>", current_symbol.function_name, u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id, $realtime());
+          $display("[Profiler] Fetched start of symbol <%s> addr <%0h> at <%0t> <%0h>", current_symbol.function_name, u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata, $realtime(), u_ibex_simple_system.u_top.u_ibex_top.rvfi_insn);
+
+          counters = new;
+          counters.function_name = current_symbol.function_name;
+          counters.counters = u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter;
+          counters.start_addr = current_symbol.start_addr;
+          counters.ret_addr = u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata + 4;
+
 
           if (!(current_symbol.function_name inside {ctr_reset_exclusion_list})) begin
-            reset_counters();
-            #1ps;
+            saved_counters.push_front(counters);
             print_counters();
           end
 
-          break;
+          continue;
 
         end
 
-      end
+          if (saved_counters[0]) begin
+                start_addr = saved_counters[0].start_addr;
 
-      // Monitor PC register for end address of current symbol
-      while (1) begin
+                if (saved_counters[0].ret_addr == u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata) begin
 
-        int start_addr, end_addr;
+                  symbol_info[start_addr].end_times.push_back($realtime());
+                  symbol_info[start_addr].times_called++;
 
-        start_addr = current_symbol.start_addr;
-        end_addr = current_symbol.end_addr;
+                  $display("[Profiler] Fetched end of symbol <%s> addr <%0h> at <%0t> <%0h>", saved_counters[0].function_name, u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata, $realtime(), u_ibex_simple_system.u_top.u_ibex_top.rvfi_insn);
+                  print_counters_nested(saved_counters.pop_front());
+                  continue;
 
-        @(posedge u_ibex_simple_system.clk_sys);
+                end
 
-        if (current_symbol.end_addr == u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id) begin
-        //if (!(u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id inside {[start_addr:end_addr]})) begin
-
-          symbol_info[current_symbol.start_addr].end_times.push_back($realtime());
-          symbol_info[current_symbol.start_addr].times_called++;
-
-          $display("[Profiler] Fetched end of symbol <%s> addr <%0h> at <%0t>", current_symbol.function_name, u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.pc_id, $realtime());
-
-          print_counters();
-
-          break;
-
-        end
-
-      end
+          end
 
     end
 
@@ -242,8 +246,8 @@ module tb_top #(
   endfunction
 
   function void print_counters();
-
-    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions", "Multiplier Busy", "Divider Busy"};
+    
+    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions", "Multiplier Busy", "Divider Busy", "Memory store word", "Memory store half word", "Memory store byte", "Memory load word", "Memory load half word", "Memory load byte"};
 
     $display("====================");
     $display("Performance Counters");
@@ -251,6 +255,22 @@ module tb_top #(
 
     foreach (reg_names[reg_index])
       $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index));
+    
+    $display("====================");
+
+  endfunction
+
+  
+  function void print_counters_nested(counters_info_t count);
+
+    string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions", "Multiplier Busy", "Divider Busy", "Memory store word", "Memory store half word", "Memory store byte", "Memory load word", "Memory load half word", "Memory load byte"};
+
+    $display("====================");
+    $display("Performance Counters");
+    $display("====================");
+
+    foreach (reg_names[reg_index])
+      $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index)-count.counters[reg_index]);
     
     $display("====================");
 
