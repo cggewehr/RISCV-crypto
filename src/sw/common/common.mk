@@ -61,8 +61,8 @@ DEPS = $(OBJS:%.o=%.d)
 INCS := -I$(COMMON_DIR) -I$(COMMON_DIR)/tinycrypt
 
 ifdef PROG
-#	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).bin $(PROG).dis
-	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).dis
+	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).bin $(PROG).dis
+#	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).dis
 	OUTFILES := $(addprefix ${SW_BUILD_PATH}/, ${OUTFILES})
 else
 	OUTFILES := $(OBJS)
@@ -74,7 +74,7 @@ ifdef PROG
 
 ${SW_BUILD_PATH}/$(PROG).elf: $(OBJS)
 #	$(CC) -march=rv32imc -mabi=ilp32 -nostdlib -nostartfiles -T $(LINKER_SCRIPT) $(wildcard $(SW_BUILD_PATH)/*.o) -o ${SW_BUILD_PATH}/$(PROG).elf
-	$(CC) -march=rv32imc -mabi=ilp32 -nostartfiles -T $(LINKER_SCRIPT) $(wildcard $(SW_BUILD_PATH)/*.o) -o ${SW_BUILD_PATH}/$(PROG).elf
+	$(CC) -march=rv32imc -mabi=ilp32 -nostartfiles -T $(LINKER_SCRIPT) $(wildcard $(SW_BUILD_PATH)/*.o) $(PROGRAM_LDFLAGS) -o ${SW_BUILD_PATH}/$(PROG).elf
 
 ${SW_BUILD_PATH}/%.dis: ${SW_BUILD_PATH}/%.elf
 	$(OBJDUMP) -fhSD $^ > $@
@@ -83,15 +83,16 @@ ${SW_BUILD_PATH}/%.dis: ${SW_BUILD_PATH}/%.elf
 # XXX: This could be replaced by objcopy once
 # https://sourceware.org/bugzilla/show_bug.cgi?id=19921
 # is widely available.
-#${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.bin
-${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.elf
+${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.bin
+#${SW_BUILD_PATH}/%.vmem: ${SW_BUILD_PATH}/%.elf
 #	srec_cat $^ -binary -offset 0x0000 -byte-swap 4 -o ${SW_BUILD_PATH}/../MemFile.vmem -vmem
 #   Remove ram offset added in linker script (see $(LINKER_SCRIPT))
-	$(OBJCOPY) -O verilog --change-addresses "-0x100000" --verilog-data-width=4 -R .debug_* -R .comment $^ $@
+#	$(OBJCOPY) -S -O verilog --change-addresses "-0x100000" --verilog-data-width=4 -R .debug_* -R .comment $^ $@
+	$(OBJCOPY) -S --verilog-data-width=4 --reverse-bytes=4 -O verilog -I binary $^ $@
 	cp $@ ${SW_BUILD_PATH}/../MemFile.vmem
 
-#${SW_BUILD_PATH}/%.bin: ${SW_BUILD_PATH}/%.elf
-#	$(OBJCOPY) -O binary $^ $@
+${SW_BUILD_PATH}/%.bin: ${SW_BUILD_PATH}/%.elf
+	$(OBJCOPY) -O binary $^ $@
 
 endif
 
