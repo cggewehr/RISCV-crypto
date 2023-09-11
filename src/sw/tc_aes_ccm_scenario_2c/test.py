@@ -110,11 +110,6 @@ def do_test(key, nonce, hdr, data, mlen):
     print("Expected len: ", len(ciphertext))
 
     return result
-    
-
-#Scenario 1c: Authenticated encryption of 86 bytes of payload and 25
-#bytes of header (which is authenticated but not encrypted). As with
-#Scenario 1b, the authentication tag has a length of 16 bytes.
 
 def test_vector_1():
 
