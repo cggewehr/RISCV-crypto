@@ -72,9 +72,9 @@ module ibex_alu #(
       ALU_MAX,  ALU_MAXU: adder_op_b_negate = 1'b1;
 
       // Address Calculation OPs (RV32B Ops)
-      ALU_SH1ADD: if (RV32B != RV32BNone) adder_op_a_shift1 = 1'b1;
-      ALU_SH2ADD: if (RV32B != RV32BNone) adder_op_a_shift2 = 1'b1;
-      ALU_SH3ADD: if (RV32B != RV32BNone) adder_op_a_shift3 = 1'b1;
+      ALU_SH1ADD: if (RV32B != RV32BNone && RV32B != RV32BCrypto) adder_op_a_shift1 = 1'b1;
+      ALU_SH2ADD: if (RV32B != RV32BNone && RV32B != RV32BCrypto) adder_op_a_shift2 = 1'b1;
+      ALU_SH3ADD: if (RV32B != RV32BNone && RV32B != RV32BCrypto) adder_op_a_shift3 = 1'b1;
 
       default:;
     endcase
@@ -263,15 +263,15 @@ module ibex_alu #(
   logic [31:0] bfp_result;
 
   // bfp: shares the shifter structure to compute bfp_mask << bfp_off
-  assign bfp_op = (RV32B != RV32BNone) ? (operator_i == ALU_BFP) : 1'b0;
+  assign bfp_op = (RV32B != RV32BNone && RV32B != RV32BCrypto) ? (operator_i == ALU_BFP) : 1'b0;
   assign bfp_len = {~(|operand_b_i[27:24]), operand_b_i[27:24]}; // len = 0 encodes for len = 16
   assign bfp_off = operand_b_i[20:16];
-  assign bfp_mask = (RV32B != RV32BNone) ? ~(32'hffff_ffff << bfp_len) : '0;
+  assign bfp_mask = (RV32B != RV32BNone && RV32B != RV32BCrypto) ? ~(32'hffff_ffff << bfp_len) : '0;
   for (genvar i = 0; i < 32; i++) begin : gen_rev_bfp_mask
     assign bfp_mask_rev[i] = bfp_mask[31-i];
   end
 
-  assign bfp_result =(RV32B != RV32BNone) ?
+  assign bfp_result =(RV32B != RV32BNone && RV32B != RV32BCrypto) ?
       (~shift_result & operand_a_i) | ((operand_b_i & bfp_mask) << bfp_off) : '0;
 
   // bit shift_amt[5]: word swap bit: only considered for FSL/FSR.
@@ -290,7 +290,7 @@ module ibex_alu #(
   end
 
   // single-bit mode: shift
-  assign shift_sbmode = (RV32B != RV32BNone) ?
+  assign shift_sbmode = (RV32B != RV32BNone && RV32B != RV32BCrypto) ?
       (operator_i == ALU_BSET) | (operator_i == ALU_BCLR) | (operator_i == ALU_BINV) : 1'b0;
 
   // left shift if this is:
@@ -305,12 +305,12 @@ module ibex_alu #(
     unique case (operator_i)
       ALU_SLL: shift_left = 1'b1;
       ALU_SLO: shift_left = (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ? 1'b1 : 1'b0;
-      ALU_BFP: shift_left = (RV32B != RV32BNone) ? 1'b1 : 1'b0;
+      ALU_BFP: shift_left = (!(RV32B inside {RV32BNone, RV32BCrypto})) ? 1'b1 : 1'b0;
       ALU_ROL: shift_left = (RV32B != RV32BNone) ? instr_first_cycle_i : 0;
       ALU_ROR: shift_left = (RV32B != RV32BNone) ? ~instr_first_cycle_i : 0;
-      ALU_FSL: shift_left = (RV32B != RV32BNone) ?
+      ALU_FSL: shift_left = (RV32B != RV32BNone && RV32B != RV32BCrypto) ?
         (shift_amt[5] ? ~instr_first_cycle_i : instr_first_cycle_i) : 1'b0;
-      ALU_FSR: shift_left = (RV32B != RV32BNone) ?
+      ALU_FSR: shift_left = (RV32B != RV32BNone && RV32B != RV32BCrypto) ?
           (shift_amt[5] ? instr_first_cycle_i : ~instr_first_cycle_i) : 1'b0;
       default: shift_left = 1'b0;
     endcase
@@ -322,7 +322,7 @@ module ibex_alu #(
   assign shift_arith  = (operator_i == ALU_SRA);
   assign shift_ones   = (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ?
       (operator_i == ALU_SLO) | (operator_i == ALU_SRO) : 1'b0;
-  assign shift_funnel = (RV32B != RV32BNone) ?
+  assign shift_funnel = (RV32B != RV32BNone && RV32B != RV32BCrypto) ?
       (operator_i == ALU_FSL) | (operator_i == ALU_FSR) : 1'b0;
 
   // shifter structure.
@@ -374,7 +374,7 @@ module ibex_alu #(
       ALU_XNOR,
       ALU_ORN,
       ALU_ANDN: bwlogic_op_b_negate = (RV32B != RV32BNone) ? 1'b1 : 1'b0;
-      ALU_CMIX: bwlogic_op_b_negate = (RV32B != RV32BNone) ? ~instr_first_cycle_i : 1'b0;
+      ALU_CMIX: bwlogic_op_b_negate = (RV32B != RV32BNone && RV32B != RV32BCrypto) ? ~instr_first_cycle_i : 1'b0;
       default:  bwlogic_op_b_negate = 1'b0;
     endcase
   end
@@ -432,8 +432,8 @@ module ibex_alu #(
     logic [31:0] bitcnt_partial_msb_d;
 
 
-    assign bitcnt_ctz    = operator_i == ALU_CTZ;
-    assign bitcnt_clz    = operator_i == ALU_CLZ;
+    assign bitcnt_ctz    = (RV32B != RV32BCrypto) ? operator_i == ALU_CTZ : '0;
+    assign bitcnt_clz    = (RV32B != RV32BCrypto) ? operator_i == ALU_CLZ : '0;
     assign bitcnt_cz     = bitcnt_ctz | bitcnt_clz;
     assign bitcnt_result = bitcnt_partial[31];
 
@@ -453,7 +453,7 @@ module ibex_alu #(
       bitcnt_bit_mask = ~bitcnt_bit_mask;
     end
 
-    assign zbe_op = (operator_i == ALU_BCOMPRESS) | (operator_i == ALU_BDECOMPRESS);
+    assign zbe_op = (RV32B != RV32BCrypto) ? (operator_i == ALU_BCOMPRESS) | (operator_i == ALU_BDECOMPRESS) : '0;
 
     always_comb begin
       unique case (1'b1)
@@ -549,7 +549,7 @@ module ibex_alu #(
     // Min / Max //
     ///////////////
 
-    assign minmax_result = cmp_result ? operand_a_i : operand_b_i;
+    assign minmax_result = (RV32B != RV32BCrypto) ? (cmp_result ? operand_a_i : operand_b_i) : '0;
 
     //////////
     // Pack //
@@ -557,7 +557,7 @@ module ibex_alu #(
 
     logic packu;
     logic packh;
-    assign packu = operator_i == ALU_PACKU;
+    assign packu = (RV32B != RV32BCrypto) ? operator_i == ALU_PACKU : '0;
     assign packh = operator_i == ALU_PACKH;
 
     always_comb begin
@@ -572,21 +572,23 @@ module ibex_alu #(
     // Sext //
     //////////
 
-    assign sext_result = (operator_i == ALU_SEXTB) ?
+    if (RV32B != RV32BCrypto)
+      assign sext_result = (operator_i == ALU_SEXTB) ?
         { {24{operand_a_i[7]}}, operand_a_i[7:0]} : { {16{operand_a_i[15]}}, operand_a_i[15:0]};
 
     /////////////////////////////
     // Single-bit Instructions //
     /////////////////////////////
 
-    always_comb begin
-      unique case (operator_i)
-        ALU_BSET: singlebit_result = operand_a_i | shift_result;
-        ALU_BCLR: singlebit_result = operand_a_i & ~shift_result;
-        ALU_BINV: singlebit_result = operand_a_i ^ shift_result;
-        default:  singlebit_result = {31'h0, shift_result[0]}; // ALU_BEXT
-      endcase
-    end
+    if (RV32B != RV32BCrypto)
+      always_comb begin
+        unique case (operator_i)
+          ALU_BSET: singlebit_result = operand_a_i | shift_result;
+          ALU_BCLR: singlebit_result = operand_a_i & ~shift_result;
+          ALU_BINV: singlebit_result = operand_a_i ^ shift_result;
+          default:  singlebit_result = {31'h0, shift_result[0]}; // ALU_BEXT
+        endcase
+      end
 
     ////////////////////////////////////
     // General Reverse and Or-combine //
@@ -599,11 +601,21 @@ module ibex_alu #(
     logic [4:0] zbp_shift_amt;
     logic gorc_op;
 
+    // Zbkb: rev8 -> shamt = 11000, brev8 -> shamt = 00111
+
+    // if (rev8) begin
+    //  shift_amt[0] = 1'b0;
+    //  shift_amt[3] = 1'b1;
+    // end else if (rev8) begin
+    //  shift_amt[0] = 1'b1;
+    //  shift_amt[3] = 1'b0;
+    // end
+
     assign gorc_op = (operator_i == ALU_GORC);
     assign zbp_shift_amt[2:0] =
-        (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ? shift_amt[2:0] : {3{shift_amt[0]}};
+        (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull || RV32B == RV32BCrypto) ? shift_amt[2:0] : {3{shift_amt[0]}};
     assign zbp_shift_amt[4:3] =
-        (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull) ? shift_amt[4:3] : {2{shift_amt[3]}};
+        (RV32B == RV32BOTEarlGrey || RV32B == RV32BFull || RV32B == RV32BCrypto) ? shift_amt[4:3] : {2{shift_amt[3]}};
 
     always_comb begin
       rev_result = operand_a_i;
@@ -983,6 +995,37 @@ module ibex_alu #(
           default:     clmul_result = clmul_result_raw;
         endcase
       end
+
+    end else if (RV32B == RV32BCrypto) begin: gen_alu_rvb_crypto 
+
+      always_comb begin
+
+        logic is_zip;
+        is_zip = operator_i == ALU_ZIP;
+
+        if (operator_i == ALU_ZIP)
+
+          for (int i = 0; i < 16; i++) begin
+            shuffle_result[2*i] = operand_a_i[i];
+            shuffle_result[2*i + 1] = operand_a_i[i + 16];
+          end
+
+        else
+
+          for (int i = 0; i < 16; i++) begin
+            shuffle_result[i] = operand_a_i[2*i];
+            shuffle_result[i + 16] = operand_a_i[2*i + 1];
+          end
+
+      end
+          
+      assign xperm_result         = '0;
+      assign clmul_result         = '0;
+      // support signals
+      assign clmul_result_rev     = '0;
+      assign crc_bmode            = '0;
+      assign crc_hmode            = '0;
+
     end else begin : gen_alu_rvb_not_otearlgrey_full
       assign shuffle_result       = '0;
       assign xperm_result         = '0;
@@ -1361,6 +1404,9 @@ module ibex_alu #(
       ALU_PACK, ALU_PACKH,
       ALU_PACKU: result_o = pack_result;
 
+      // Pack Operations (RV32B)
+      ALU_ZIP, ALU_UNZIP: result_o = shuffle_result;
+
       // Sign-Extend (RV32B)
       ALU_SEXTB, ALU_SEXTH: result_o = sext_result;
 
@@ -1381,7 +1427,8 @@ module ibex_alu #(
       ALU_BINV, ALU_BEXT: result_o = singlebit_result;
 
       // General Reverse / Or-combine (RV32B)
-      ALU_GREV, ALU_GORC: result_o = rev_result;
+      // ALU_GREV, ALU_GORC: result_o = rev_result;
+      ALU_GREV, ALU_GORC, ALU_REV8, ALU_BREV8: result_o = rev_result;
 
       // Bit Field Place (RV32B)
       ALU_BFP: result_o = bfp_result;

@@ -49,7 +49,8 @@ package ibex_pkg;
     RV32BNone       = 0,
     RV32BBalanced   = 1,
     RV32BOTEarlGrey = 2,
-    RV32BFull       = 3
+    RV32BFull       = 3,
+    RV32BCrypto     = 4
   } rv32b_e;
 
   /////////////
@@ -130,6 +131,17 @@ package ibex_pkg;
     ALU_PACK,
     ALU_PACKU,
     ALU_PACKH,
+
+
+    // ZIP 
+    // UNZIP
+    ALU_ZIP,
+    ALU_UNZIP,
+
+    // REV8
+    // BREV8
+    ALU_REV8,
+    ALU_BREV8,
 
     // Sign-Extend
     // RV32B
