@@ -96,11 +96,12 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 		//puts("CCM config failed \n");
 
 		result = 0; 
-        if (result == 1)
+	}
+
+	 if (result == 1)
             puts("PASS\n");
         else
             puts("FAIL\n");
-	}
 
 	//print_expected("\t\tExpected: ", ciphertext, elen);
 
@@ -115,12 +116,12 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 		puts("ccm_encrypt failed in %s.\n");
 
 		result = 0;
-		// 
-        if (result == 1)
+	}
+
+	if (result == 1)
           puts("PASS\n");
         else
           puts("FAIL\n");
-	}
 
 
 	if (memcmp(expected, ciphertext, elen) != 0) {
@@ -130,11 +131,12 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 
 		result = 0;
 		// 
-        if (result == 1)
+	}
+
+	if (result == 1)
             puts("PASS\n");
         else
             puts("FAIL\n");
-	}
 
 	result = tc_ccm_decryption_verification(decrypted, TC_CCM_MAX_PT_SIZE, hdr,
 						hlen, ciphertext, dlen+mlen, &c);
@@ -144,11 +146,12 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 		//show_str("\t\tData Computed", decrypted, sizeof(decrypted));
 
 		result = 0;
-		if (result == 1)
+	}
+
+	if (result == 1)
             puts("PASS\n");
         else
             puts("FAIL\n");
-	}
 	
 	result = 1;
 
@@ -197,7 +200,7 @@ int test_vector_1(void)
 
 	uint16_t mlen = M_LEN16; 
 
-	puts("Performing CCM test #1 (RFC 3610 test vector #1):\n");
+	puts("Performing CCM test #1 (RFC 3610 test vector #1): - tc_aes_ccm_scenario_1c\n");
 
 	result = do_test(key, nonce, sizeof(nonce), hdr, sizeof(hdr),
 			 data, sizeof(data), expected, sizeof(expected), mlen);

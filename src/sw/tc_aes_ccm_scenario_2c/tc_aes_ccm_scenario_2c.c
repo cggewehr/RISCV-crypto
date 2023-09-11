@@ -61,6 +61,8 @@
 #define M_LEN16 16
 #define M_LEN8 8
 #define M_LEN10 10
+#define M_LEN16 16
+#define M_LEN1224 1224
 #define DATA_BUF_LEN16 16
 #define DATA_BUF_LEN23 23
 #define DATA_BUF_LEN23 23
@@ -97,12 +99,12 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 	if (result == 0) {
 		puts("CCM config failed \n");
 
-		result = 0; 
-        if (result == 1)
+		result = 0;
+	}
+	if (result == 1)
             puts("PASS\n");
         else
             puts("FAIL\n");
-	}
 
 	//print_expected("\t\tExpected: ", ciphertext, elen);
 
@@ -110,15 +112,14 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 					      hlen, data, dlen, &c);
 
 	if (result == 0) {
-		puts("ccm_encrypt failed in %s.\n");
+		puts("ccm_encrypt failed in gen encrypt.\n");
 
 		result = 0;
-		// 
-        if (result == 1)
+	}
+	if (result == 1)
             puts("PASS\n");
         else
             puts("FAIL\n");
-	}
 
 
 	if (memcmp(expected, ciphertext, elen) != 0) {
@@ -127,12 +128,11 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 		//show_str("\t\tCipher Computed", ciphertext, elen);
 
 		result = 0;
-		// 
-        if (result == 1)
+	}
+	if (result == 1)
             puts("PASS\n");
         else
             puts("FAIL\n");
-	}
 
 	result = tc_ccm_decryption_verification(decrypted, TC_CCM_MAX_PT_SIZE, hdr,
 						hlen, ciphertext, dlen+mlen, &c);
@@ -142,22 +142,16 @@ int do_test(const uint8_t *key, uint8_t *nonce,
 		//show_str("\t\tData Computed", decrypted, sizeof(decrypted));
 
 		result = 0;
-		if (result == 1)
+	}
+	if (result == 1)
             puts("PASS\n");
         else
             puts("FAIL\n");
-	}
 	
 	result = 1;
 	
 	return result;
 }
-
-/*Scenario 1c: Authenticated encryption of 86 bytes of payload and 25
-bytes of header (which is authenticated but not encrypted). As with
-Scenario 1b, the authentication tag has a length of 16 bytes.*/
-
-
 int test_vector_1(void)
 {
 	int result = 1;
@@ -193,7 +187,7 @@ int test_vector_1(void)
 	};
 	uint16_t mlen = M_LEN16; 
 
-	puts("Performing CCM test #1 (RFC 3610 test vector #1):\n");
+	puts("Performing CCM test #1 (RFC 3610 test vector #1) - tc_aes_ccm_scenario_2c\n");
 
 	result = do_test(key, nonce, sizeof(nonce), hdr, sizeof(hdr),
 			 data, sizeof(data), expected, sizeof(expected), mlen);
