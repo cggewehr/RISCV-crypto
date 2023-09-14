@@ -6,8 +6,19 @@ set START_TIME $env(POWER_ANALYSIS_START_TIME)
 set END_TIME $env(POWER_ANALYSIS_END_TIME)
 
 read_db ${DB_FILE}
+
+# Override liberty read from db above with typical PVT .libs
+#set_db library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CORE_LR@2.0@20130411.0/libs/C28SOI_SC_12_CORE_LR_tt28_0.90V_25C.lib \
+#                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_PR_LR@2.0@20130412.0/libs/C28SOI_SC_12_PR_LR_tt28_0.90V_25C.lib \
+#                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_12_CLK_LR@2.1@20130621.0/libs/C28SOI_SC_12_CLK_LR_tt28_0.90V_25C.lib"
+             
+set_db library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_CORE_LL@2.1@20131011.0/libs/C28SOI_SC_8_CORE_LL_tt28_0.90V_0.00V_0.00V_0.00V_25C.lib \
+                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_PR_LL@2.1@20131028.1/libs/C28SOI_SC_8_PR_LL_tt28_0.90V_0.00V_0.00V_0.00V_25C.lib \
+                /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_8_CLK_LL@2.2@20131011.0/libs/C28SOI_SC_8_CLK_LL_tt28_0.90V_0.00V_0.00V_0.00V_25C.lib"
+
 read_stimulus ${SHM_FILE} -dut_instance /tb_top/u_ibex_simple_system/u_top/u_ibex_top -start ${START_TIME} -end ${END_TIME}
-report_power -unit mW > ${REPORT_DIR}/rpt_power_${REPORT_NAME}.txt
+compute_power -mode average
+report_power -header -unit mW > ${REPORT_DIR}/rpt_power_${REPORT_NAME}.txt
 
 exit
 

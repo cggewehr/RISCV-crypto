@@ -38,8 +38,6 @@ void sim_halt() { DEV_WRITE(SIM_CTRL_BASE + SIM_CTRL_CTRL, 1); }
 
 void pcount_reset() {
   asm volatile(
-      "csrw minstret,       x0\n"
-      "csrw mcycle,         x0\n"
       "csrw mhpmcounter3,   x0\n"
       "csrw mhpmcounter4,   x0\n"
       "csrw mhpmcounter5,   x0\n"
@@ -69,37 +67,8 @@ void pcount_reset() {
       "csrw mhpmcounter29,  x0\n"
       "csrw mhpmcounter30,  x0\n"
       "csrw mhpmcounter31,  x0\n"
-      "csrw minstreth,      x0\n"
-      "csrw mcycleh,        x0\n"
-      "csrw mhpmcounter3h,  x0\n"
-      "csrw mhpmcounter4h,  x0\n"
-      "csrw mhpmcounter5h,  x0\n"
-      "csrw mhpmcounter6h,  x0\n"
-      "csrw mhpmcounter7h,  x0\n"
-      "csrw mhpmcounter8h,  x0\n"
-      "csrw mhpmcounter9h,  x0\n"
-      "csrw mhpmcounter10h, x0\n"
-      "csrw mhpmcounter11h, x0\n"
-      "csrw mhpmcounter12h, x0\n"
-      "csrw mhpmcounter13h, x0\n"
-      "csrw mhpmcounter14h, x0\n"
-      "csrw mhpmcounter15h, x0\n"
-      "csrw mhpmcounter16h, x0\n"
-      "csrw mhpmcounter17h, x0\n"
-      "csrw mhpmcounter18h, x0\n"
-      "csrw mhpmcounter19h, x0\n"
-      "csrw mhpmcounter20h, x0\n"
-      "csrw mhpmcounter21h, x0\n"
-      "csrw mhpmcounter22h, x0\n"
-      "csrw mhpmcounter23h, x0\n"
-      "csrw mhpmcounter24h, x0\n"
-      "csrw mhpmcounter25h, x0\n"
-      "csrw mhpmcounter26h, x0\n"
-      "csrw mhpmcounter27h, x0\n"
-      "csrw mhpmcounter28h, x0\n"
-      "csrw mhpmcounter29h, x0\n"
-      "csrw mhpmcounter30h, x0\n"
-      "csrw mhpmcounter31h, x0\n");
+      "csrw minstret,       x0\n"
+      "csrw mcycle,         x0\n");
 }
 
 void pcount_enable(int enable) {
@@ -111,7 +80,15 @@ void pcount_enable(int enable) {
   // the old name, and LLVM only supports the new name (though this is changed
   // on trunk to support both), so we use the numeric value here for maximum
   // compatibility.
-  asm volatile("csrw  0x320, %0\n" : : "r"(inhibit_val));
+  asm volatile("csrw 0x320, %0\n" : : "r"(inhibit_val));
+}
+
+// Writes "data_ind_timing" bit of Ibex custom CSR "cpuctrlsts"
+void data_ind_timing_enable(int enable) {
+  unsigned int cpuctrlsts_val;
+  asm volatile("csrr %0, 0x7C0\n" : "=r"(cpuctrlsts_val):);
+  cpuctrlsts_val = enable ? (cpuctrlsts_val | 0x00000002) : cpuctrlsts_val;
+  asm volatile("csrw 0x7C0, %0\n" : : "r"(cpuctrlsts_val));
 }
 
 unsigned int get_mepc() {

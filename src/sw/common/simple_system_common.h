@@ -51,6 +51,13 @@ void sim_halt();
 void pcount_enable(int enable);
 
 /**
+ * Enables/disables data independant execution timing if SecureIbex parameter is set in RTL.
+ *
+ * @param enable if non-zero enables, otherwise disables
+ */
+void data_ind_timing_enable(int enable);
+
+/**
  * Resets all performance counters.  This effects mcycle and minstret as well
  * as the mhpmcounterN counters.
  */

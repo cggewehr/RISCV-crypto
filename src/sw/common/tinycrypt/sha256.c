@@ -225,8 +225,8 @@ static void sha256_compress(unsigned int *iv, const uint8_t *data)
     unsigned int workspace[16];
 
     register uint32_t* iv_ptr asm ("a0") = iv;
-    register uint8_t* leftover_ptr asm ("a1") = data;
-    register unsigned int* k256_ptr asm("a3") = k256;
+    const register uint8_t* leftover_ptr asm ("a1") = data;
+    const register unsigned int* k256_ptr asm("a3") = k256;
     register unsigned int* workspace_ptr asm("a4") = workspace;
 
     // REG TABLE
@@ -246,15 +246,6 @@ static void sha256_compress(unsigned int *iv, const uint8_t *data)
     // s5: C state variable
     // s6: B state variable
     // s7: A state variable
-
-    // t3: H running state
-    // t1: G running state
-    // s8: F running state
-    // s9: E running state
-    // s10: D running state
-    // s11: C running state
-    // a6: B running state
-    // a7: A running state
 
     // t0: i counter
     // t2: Saves SP, restores at the end
@@ -486,7 +477,5 @@ static void sha256_compress(unsigned int *iv, const uint8_t *data)
     ::"r" (iv_ptr), "r" (leftover_ptr), "r" (k256_ptr), "r" (workspace_ptr):);
 
     #endif
-
-	return TC_CRYPTO_SUCCESS;
 
 }

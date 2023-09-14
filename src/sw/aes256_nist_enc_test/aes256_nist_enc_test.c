@@ -91,17 +91,17 @@ int test_2(void)
 
 	puts("AES256 (NIST encryption test):\n");
 
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
 	(void)tc_aes256_set_encrypt_key(&s, nist_key);
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
 
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
     ret = tc_aes_encrypt(ciphertext, nist_input, &s);
-    pcount_reset();
-    pcount_enable(1);
+    //pcount_reset();
+    //pcount_enable(1);
 
 	if (ret == 0) {
 		puts("AES256 %s (NIST encryption test) failed.\n");
@@ -128,6 +128,8 @@ exitTest2:
 int main(void)
 {
 	int result = TC_PASS;
+
+    data_ind_timing_enable(1);
 
 	puts("Performing AES256 tests:");
 	result = test_2();

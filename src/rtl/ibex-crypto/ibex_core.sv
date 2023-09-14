@@ -972,6 +972,7 @@ module ibex_core import ibex_pkg::*; #(
   ) cs_registers_i (
     .clk_i (clk_i),
     .rst_ni(rst_ni),
+    .lsu_type(lsu_type),
 
     // Hart ID from outside
     .hart_id_i      (hart_id_i),

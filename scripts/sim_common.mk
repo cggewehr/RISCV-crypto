@@ -5,8 +5,9 @@ export SCRIPTS_DIR := ${SCRIPTS_DIR}
 export SIM_PATH := ${SIM_PATH}
 
 NETLIST ?= 0
-CELL_LIB_BASE_PATH = /soft64/design-kits/stm/28nm-cmos28fdsoi_24/C28SOI_SC_12
-CELL_LIB_VERILOG = $(CELL_LIB_BASE_PATH)_CORE_LR@2.0@20130411.0/behaviour/verilog/C28SOI_SC_12_CORE_LR.v $(CELL_LIB_BASE_PATH)_CLK_LR@2.1@20130621.0/behaviour/verilog/C28SOI_SC_12_CLK_LR.v
+CELL_LIB_BASE_PATH = /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_
+CELL_LIB_VERILOG = $(CELL_LIB_BASE_PATH)8_CORE_LL@2.1@20131011.0/behaviour/verilog/C28SOI_SC_8_CORE_LL.v $(CELL_LIB_BASE_PATH)8_CLK_LL@2.2@20131011.0/behaviour/verilog/C28SOI_SC_8_CLK_LL.v
+#CELL_LIB_VERILOG = $(CELL_LIB_BASE_PATH)12_CORE_LR@2.0@20130411.0/behaviour/verilog/C28SOI_SC_12_CORE_LR.v $(CELL_LIB_BASE_PATH)12_CLK_LR@2.1@20130621.0/behaviour/verilog/C28SOI_SC_12_CLK_LR.v
 
 # Set tool-specific variables
 ifeq (${VENDOR}, Cadence)
@@ -28,7 +29,7 @@ ifeq (${VENDOR}, Cadence)
 	SYN_EXEC=genus
 	SYN_OPTS=-f ${SCRIPTS_DIR}/genus/genus.tcl -no_gui -log log/genus -overwrite
 	POWER_EXEC=genus
-	POWER_OPTS=-f ${SCRIPTS_DIR}/genus/power_analysis.tcl -no_gui -log log/genus_pa -overwrite
+	POWER_OPTS=-f ${SCRIPTS_DIR}/genus/power_analysis.tcl -no_gui -log log/genus_pa -overwrite -lic_startup_options Joules_RTL_Power
 
 else
 	@echo Vendor <${VENDOR}> not supported by this makefile
@@ -78,8 +79,8 @@ sw:
 
 	@echo -e "\n---- Building VMEM file from <${SW_BUILD_PATH}/${PROG}>"
 	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile PROGRAM=${PROG} SW_BUILD_PATH=${SW_BUILD_PATH} SW_SRC_PATH=${SW_SRC_PATH} COMMON_DIR=${COMMON_DIR}
-	nm -S sw_build/${PROG}.elf > sw_build/nm.out
-	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$4) print $$4, $$1, $$2}' sw_build/nm.out > sw_build/symbol_table.txt
+	nm sw_build/${PROG}.elf > sw_build/nm.out
+	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$3) print $$3, $$1}' sw_build/nm.out > sw_build/symbol_table.txt
 
 comp:
 
@@ -130,14 +131,13 @@ clean:
 	rm -rf *.key
 	rm -rf xcelium.d
 	rm -rf waves.shm
-	rm -rf netlist_sim.shm
 	rm -rf log/*
 	rm -rf sw_build/*
 	rm -rf MemFile.vmem
 	rm -rf symbol_table.txt
 #	rm -rf deliverables/*
-	mkdir deliverables/vcd
-	mkdir deliverables/shm
+#	mkdir deliverables/vcd
+#	mkdir deliverables/shm
 	rm -rf fv
 	rm -rf genus
 	rm -rf genus.*

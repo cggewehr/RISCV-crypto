@@ -6,3 +6,5 @@ src/sw/common/tinycrypt/test/test_ccm_mode
 src/sw/common/tinycrypt/test/test_ctr_mode
 src/sw/common/tinycrypt/test/test_ctr_prng
 src/sw/common/tinycrypt/test/test_sha256
+cacti/obj_dbg
+cacti/cacti
