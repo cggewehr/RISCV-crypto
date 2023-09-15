@@ -52,7 +52,7 @@ TB_FILES = $(addprefix ${RISCV_CRYPTO_TBENCH}/, $(shell cat ${RISCV_CRYPTO_TBENC
 SYMBOLS_LIST="tc_aes128_set_encrypt_key
 SYMBOLS_LIST+=tc_aes192_set_encrypt_key
 SYMBOLS_LIST+=tc_aes256_set_encrypt_key
-SYMBOLS_LIST+=tc_aes_encrypt
+#SYMBOLS_LIST+=tc_aes_encrypt
 SYMBOLS_LIST+=tc_sha256_init
 SYMBOLS_LIST+=tc_sha256_update
 SYMBOLS_LIST+=tc_sha256_final
@@ -62,6 +62,7 @@ SYMBOLS_LIST+=tc_sha512_update
 SYMBOLS_LIST+=tc_sha512_final
 SYMBOLS_LIST+=sha512_compress
 SYMBOLS_LIST+=ascon_permute
+SYMBOLS_LIST+=tc_ccm_generation_encryption
 SYMBOLS_LIST+=ascon_core"
 
 START_TIME?=0ns
