@@ -344,6 +344,17 @@ package ibex_tracer_pkg;
   parameter logic [31:0] INSN_SHA512SIG1L = { 7'b0101011, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
   parameter logic [31:0] INSN_SHA512SUM0R = { 7'b0101000, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
   parameter logic [31:0] INSN_SHA512SUM1R = { 7'b0101001, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
+  
+  parameter logic [31:0] INSN_ASCONSIGMA0H = { 7'b0100000, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA1H = { 7'b0100001, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA2H = { 7'b0100010, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA3H = { 7'b0100011, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA4H = { 7'b0100100, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA0L = { 7'b0000000, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA1L = { 7'b0000001, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA2L = { 7'b0000010, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA3L = { 7'b0000011, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_ASCONSIGMA4L = { 7'b0000100, 10'h?, 3'b111, 5'h?, 7'b0101011 };
     
   parameter logic [31:0] INSN_AES32ESI    = { 2'h?, 5'b10001, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
   parameter logic [31:0] INSN_AES32ESMI   = { 2'h?, 5'b10011, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };

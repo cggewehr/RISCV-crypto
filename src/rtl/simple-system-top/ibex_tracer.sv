@@ -1076,6 +1076,17 @@ module ibex_tracer (
         INSN_SHA256SUM0: decode_i_insn("sha256sum0");
         INSN_SHA256SUM1: decode_i_insn("sha256sum1");
 
+        INSN_ASCONSIGMA0H: decode_r_insn("asconsigma0h");
+        INSN_ASCONSIGMA1H: decode_r_insn("asconsigma1h");
+        INSN_ASCONSIGMA2H: decode_r_insn("asconsigma2h");
+        INSN_ASCONSIGMA3H: decode_r_insn("asconsigma3h");
+        INSN_ASCONSIGMA4H: decode_r_insn("asconsigma4h");
+        INSN_ASCONSIGMA0L: decode_r_insn("asconsigma0l");
+        INSN_ASCONSIGMA1L: decode_r_insn("asconsigma1l");
+        INSN_ASCONSIGMA2L: decode_r_insn("asconsigma2l");
+        INSN_ASCONSIGMA3L: decode_r_insn("asconsigma3l");
+        INSN_ASCONSIGMA4L: decode_r_insn("asconsigma4l");
+
         INSN_SHA512SIG0H: decode_r_insn("sha512sig0h");
         INSN_SHA512SIG0L: decode_r_insn("sha512sig0l");
         INSN_SHA512SIG1H: decode_r_insn("sha512sig1h");

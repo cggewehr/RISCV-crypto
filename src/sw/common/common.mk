@@ -9,6 +9,9 @@
 #COMMON_OBJS = ${COMMON_SRCS:.c=.o}
 #COMMON_OBJS := $(patsubst $(COMMON_DIR)%, $(SW_BUILD_PATH)%, ${COMMON_OBJS})
 
+
+INCS := -I$(COMMON_DIR) -I$(COMMON_DIR)/tinycrypt
+
 #DEFS := -DSHA256_RISCV_ASM -DSHA512_RISCV_ASM -DTC_AES_256 -DAES_RISCV_ASM
 ifdef SHA256_ASM
 	DEFS += -DSHA256_RISCV_ASM
@@ -20,6 +23,10 @@ endif
 
 ifdef AES_ASM
 	DEFS += -DAES_RISCV_ASM
+endif
+
+ifdef ASCON_ISE
+	DEFS += -DASCON_ISE
 endif
 
 AES ?= 128
@@ -57,8 +64,6 @@ OBJS := $(notdir ${C_SRCS:.c=.o} ${ASM_SRCS:.S=.o})
 # This makes it so that object files are created within sim area (build/sim/$SIM_AREA/sw_build, outside src/sw/)
 OBJS := $(addprefix ${SW_BUILD_PATH}/, ${OBJS})
 DEPS = $(OBJS:%.o=%.d)
-
-INCS := -I$(COMMON_DIR) -I$(COMMON_DIR)/tinycrypt
 
 ifdef PROG
 	OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).bin $(PROG).dis
@@ -109,3 +114,4 @@ clean:
 
 distclean: clean
 	$(RM) -f $(OUTFILES)
+
