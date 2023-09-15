@@ -37,7 +37,7 @@ ifeq ($(AES), 256)
 endif
 
 ARCH ?= rv32imc_zicsr_zbkb
-CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -g -Os -fvisibility=hidden -ffreestanding $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
+CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -Os -fvisibility=hidden -ffreestanding $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
 CC = riscv64-elf-gcc
 CROSS_COMPILE = $(patsubst %-gcc,%-,$(CC))
 OBJCOPY ?= $(CROSS_COMPILE)objcopy
