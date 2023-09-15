@@ -59,11 +59,9 @@ SYMBOLS_LIST+=sha256_compress
 SYMBOLS_LIST+=tc_sha512_init
 SYMBOLS_LIST+=tc_sha512_update
 SYMBOLS_LIST+=tc_sha512_final
-SYMBOLS_LIST+=ascon_init
-SYMBOLS_LIST+=crypto_aead_encrypt
-SYMBOLS_LIST+=ascon_core
-SYMBOLS_LIST+=tc_ccm_generation_encryption
-SYMBOLS_LIST+=sha512_compress"
+SYMBOLS_LIST+=sha512_compress
+SYMBOLS_LIST+=ascon_permute
+SYMBOLS_LIST+=ascon_core"
 
 START_TIME?=0ns
 END_TIME?=0ns

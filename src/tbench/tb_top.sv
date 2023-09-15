@@ -188,7 +188,7 @@ module tb_top #(
       // Monitor PC register for start addresses in symbol table
 
         @(posedge u_ibex_simple_system.clk_sys);
-        if (symbol_info.exists(u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata)) begin
+        if (symbol_info.exists(u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata) && u_ibex_simple_system.u_top.u_ibex_top.rvfi_valid) begin
 
           current_symbol = symbol_info[u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata];
 
