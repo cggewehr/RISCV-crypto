@@ -205,6 +205,7 @@ module tb_top #(
             counters.ret_addr = u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata + 4;
           else
             counters.ret_addr = u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata + 2;
+            $display("%h", counters.ret_addr);
 
           if (!(current_symbol.function_name inside {ctr_reset_exclusion_list})) begin
             saved_counters.push_front(counters);

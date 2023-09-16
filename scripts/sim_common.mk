@@ -61,7 +61,7 @@ SYMBOLS_LIST+=tc_sha512_init
 SYMBOLS_LIST+=tc_sha512_update
 SYMBOLS_LIST+=tc_sha512_final
 SYMBOLS_LIST+=sha512_compress
-SYMBOLS_LIST+=ascon_permute
+#SYMBOLS_LIST+=ascon_permute
 SYMBOLS_LIST+=tc_ccm_generation_encryption
 SYMBOLS_LIST+=ascon_core"
 
