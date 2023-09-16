@@ -5,7 +5,7 @@
 # Generate a baremetal application
 
 # Name of the program $(PROGRAM).c will be added as a source file
-PROG = ascon128_scenario_1c
+PROG = ascon128_scenario_1c_zbkb
 PROGRAM_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 # Any extra source files to include in the build. Use the upper case .S
 # extension for assembly files
