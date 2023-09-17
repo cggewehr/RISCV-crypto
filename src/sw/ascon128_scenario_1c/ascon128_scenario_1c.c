@@ -62,6 +62,9 @@ int main() {
   unsigned long long mlen = CRYPTO_MBYTES;
   unsigned long long clen = 16;
   int result = 0;
+
+  data_ind_timing_enable(1);
+
   puts("k");
   print('k', k, CRYPTO_KEYBYTES);
   puts(" n");

@@ -23,8 +23,8 @@ EXTRA_SRCS := ascon.S
 # asconsigma3l     rd rs1 rs2 31..30=0 29..25=3 14..12=7 6..0=0x2B
 # asconsigma4l     rd rs1 rs2 31..30=0 29..25=4 14..12=7 6..0=0x2B
 
-PROGRAM_CFLAGS = -B/home/${USER}/riscv/bin/riscv64-unknown-linux-gnu-
-OBJDUMP = /home/${USER}/riscv/bin/riscv64-unknown-linux-gnu-objdump
-OBJCOPY = /home/${USER}/riscv/bin/riscv64-unknown-linux-gnu-objcopy
+#PROGRAM_CFLAGS = -B/home/${USER}/riscv/bin/riscv64-unknown-linux-gnu-
+#OBJDUMP = /home/${USER}/riscv/bin/riscv64-unknown-linux-gnu-objdump
+#OBJCOPY = /home/${USER}/riscv/bin/riscv64-unknown-linux-gnu-objcopy
 
 include ${PROGRAM_DIR}/../common/common.mk
