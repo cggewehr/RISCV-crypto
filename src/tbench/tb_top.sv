@@ -8,7 +8,7 @@
 `endif
 
 `ifndef RV32B
-  `define RV32B ibex_pkg::RV32BNone
+  `define RV32B ibex_pkg::RV32BCrypto
 `endif
 
 `ifndef RegFile
@@ -188,7 +188,7 @@ module tb_top #(
       // Monitor PC register for start addresses in symbol table
 
         @(posedge u_ibex_simple_system.clk_sys);
-        if (symbol_info.exists(u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata) && u_ibex_simple_system.u_top.u_ibex_top.rvfi_valid) begin
+        if (symbol_info.exists(u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata)) begin
 
           current_symbol = symbol_info[u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata];
 
@@ -205,6 +205,7 @@ module tb_top #(
             counters.ret_addr = u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata + 4;
           else
             counters.ret_addr = u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata + 2;
+            $display("%h", counters.ret_addr);
 
           if (!(current_symbol.function_name inside {ctr_reset_exclusion_list})) begin
             saved_counters.push_front(counters);

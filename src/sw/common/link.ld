@@ -64,6 +64,7 @@ SECTIONS
         *(.sdata.*)
         *(.data);
         *(.data.*)
+        . = ALIGN(4);
     } > ram
 
     .bss :

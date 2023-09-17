@@ -215,9 +215,7 @@ int test_vector_1(void)
 int main(void)
 {
 	int result = 1;
-
 	data_ind_timing_enable(1);
-
 	puts("Performing CCM tests:");
 
 	result = test_vector_1();
