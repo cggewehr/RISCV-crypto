@@ -122,14 +122,15 @@ static int scenario_2c(void) {
         puts("detached m != m2\n");
     }
 
-    for (i = 0U; i < CLEN; i++) {
-        c[i] ^= (i + 1U);
-        //if (crypto_aead_chacha20poly1305_ietf_decrypt(m2, NULL, NULL, c, CLEN, ad, ADLEN, nonce, firstkey) == 0 || memcmp(m, m2, MLEN) == 0) {
-        if (crypto_aead_chacha20poly1305_ietf_decrypt(&m2, NULL, NULL, &c, CLEN, ad, ADLEN, nonce, firstkey) == 0 || memcmp(&m, &m2, MLEN) == 0) {
-            puts("message can be forged\n");
-        }
-        c[i] ^= (i + 1U);
-    }
+    // for (i = 0U; i < CLEN; i++) {
+    //     c[i] ^= (i + 1U);
+    //     //if (crypto_aead_chacha20poly1305_ietf_decrypt(m2, NULL, NULL, c, CLEN, ad, ADLEN, nonce, firstkey) == 0 || memcmp(m, m2, MLEN) == 0) {
+    //     if (crypto_aead_chacha20poly1305_ietf_decrypt(&m2, NULL, NULL, &c, CLEN, ad, ADLEN, nonce, firstkey) == 0 || memcmp(&m, &m2, MLEN) == 0) {
+    //         puthex(i);
+    //         puts("message can be forged\n");
+    //     }
+    //     c[i] ^= (i + 1U);
+    // }
     //crypto_aead_chacha20poly1305_ietf_encrypt(c, &found_clen, m, MLEN, NULL, 0U, NULL, nonce, firstkey);
     crypto_aead_chacha20poly1305_ietf_encrypt(&c, &found_clen, &m, MLEN, NULL, 0U, NULL, nonce, firstkey);
     if (found_clen != CLEN) {
