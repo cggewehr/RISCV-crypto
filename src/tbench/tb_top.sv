@@ -218,7 +218,8 @@ module tb_top #(
           if (saved_counters[0]) begin
                 start_addr = saved_counters[0].start_addr;
 
-                if (saved_counters[0].ret_addr == u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata) begin
+                // if (saved_counters[0].ret_addr == u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_wdata) begin
+                if (saved_counters[0].ret_addr == u_ibex_simple_system.u_top.u_ibex_top.rvfi_pc_rdata) begin
 
                   symbol_info[start_addr].end_times.push_back($realtime());
                   symbol_info[start_addr].times_called++;
