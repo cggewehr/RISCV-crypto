@@ -8,7 +8,7 @@
 `endif
 
 `ifndef RV32B
-  `define RV32B ibex_pkg::RV32BCrypto
+  `define RV32B ibex_pkg::RV32BNone
 `endif
 
 `ifndef RegFile
