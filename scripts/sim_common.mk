@@ -52,7 +52,7 @@ TB_FILES = $(addprefix ${RISCV_CRYPTO_TBENCH}/, $(shell cat ${RISCV_CRYPTO_TBENC
 SYMBOLS_LIST="tc_aes128_set_encrypt_key
 SYMBOLS_LIST+=tc_aes192_set_encrypt_key
 SYMBOLS_LIST+=tc_aes256_set_encrypt_key
-#SYMBOLS_LIST+=tc_aes_encrypt
+# SYMBOLS_LIST+=tc_aes_encrypt
 SYMBOLS_LIST+=tc_sha256_init
 SYMBOLS_LIST+=tc_sha256_update
 SYMBOLS_LIST+=tc_sha256_final
@@ -62,7 +62,14 @@ SYMBOLS_LIST+=tc_sha512_update
 SYMBOLS_LIST+=tc_sha512_final
 SYMBOLS_LIST+=sha512_compress
 #SYMBOLS_LIST+=ascon_permute
+SYMBOLS_LIST+=crypto_aead_chacha20poly1305_ietf_encrypt
+SYMBOLS_LIST+=crypto_aead_chacha20poly1305_ietf_encrypt.constprop.0
 SYMBOLS_LIST+=tc_ccm_generation_encryption
+SYMBOLS_LIST+=sha3_f1600_rvb32
+SYMBOLS_LIST+=crypto_kem_keypair
+SYMBOLS_LIST+=crypto_kem_enc
+SYMBOLS_LIST+=crypto_kem_dec
+SYMBOLS_LIST+=rvkat_info
 SYMBOLS_LIST+=ascon_core"
 
 START_TIME?=0ns
@@ -78,7 +85,7 @@ export POWER_ANALYSIS_END_TIME=${END_TIME}
 sw:
 
 	@echo -e "\n---- Building VMEM file from <${SW_BUILD_PATH}/${PROG}>"
-	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile PROGRAM=${PROG} SW_BUILD_PATH=${SW_BUILD_PATH} SW_SRC_PATH=${SW_SRC_PATH} COMMON_DIR=${COMMON_DIR}
+	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile PROGRAM=${PROG} SW_BUILD_PATH=${SW_BUILD_PATH} COMMON_DIR=${COMMON_DIR} all
 	nm sw_build/${PROG}.elf > sw_build/nm.out
 	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$3) print $$3, $$1}' sw_build/nm.out > sw_build/symbol_table.txt
 
@@ -95,23 +102,23 @@ comp:
 	@echo -e "\n---- Compiling TB"
 	${COMP_EXEC} ${COMP_OPTS} ${TB_FILES}
 
-elab: 
+elab:
 
 	@echo -e "\n---- Elaborating Testbench"
 	${ELAB_EXEC} ${ELAB_OPTS}
 
-sim: 
+sim:
 
 	@echo -e "\n---- Beginning Simulation"
 	${SIM_EXEC} ${SIM_OPTS}
 
-simgui: 
+simgui:
 
 	@echo -e "\n---- Beginning Interactive Simulation"
 	${SIM_EXEC} ${SIM_GUI_OPTS}
 
 all: comp elab sim
-	
+
 allgui: comp elab simgui
 
 netlist:
@@ -132,12 +139,12 @@ clean:
 	rm -rf xcelium.d
 	rm -rf waves.shm
 	rm -rf log/*
-	rm -rf sw_build/*
 	rm -rf MemFile.vmem
 	rm -rf symbol_table.txt
-#	rm -rf deliverables/*
-#	mkdir deliverables/vcd
-#	mkdir deliverables/shm
 	rm -rf fv
 	rm -rf genus
 	rm -rf genus.*
+	rm -rf sw_build/nm.out
+	rm -rf sw_build/symbol_table.txt
+	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile PROGRAM=${PROG} SW_BUILD_PATH=${SW_BUILD_PATH} COMMON_DIR=${COMMON_DIR} clean
+
