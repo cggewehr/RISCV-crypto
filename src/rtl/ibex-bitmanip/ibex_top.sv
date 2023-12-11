@@ -20,7 +20,7 @@ module ibex_top import ibex_pkg::*; #(
   parameter int unsigned MHPMCounterWidth = 40,
   parameter bit          RV32E            = 1'b0,
   parameter rv32m_e      RV32M            = RV32MFast,
-  parameter rv32b_e      RV32B            = RV32BNone,
+  parameter rv32b_e      RV32B            = RV32BCrypto,
   parameter regfile_e    RegFile          = RegFileLatch,
   parameter bit          BranchTargetALU  = 1'b0,
   parameter bit          WritebackStage   = 1'b0,
