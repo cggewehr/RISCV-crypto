@@ -4,6 +4,8 @@ SCRIPTS_DIR=${ROOT_PATH}/scripts
 export SCRIPTS_DIR := ${SCRIPTS_DIR}
 export SIM_PATH := ${SIM_PATH}
 
+TB ?= tb_top
+
 NETLIST ?= 0
 CELL_LIB_BASE_PATH = /soft64/design-kits/stm/28nm-cmos28fdsoi_25d/C28SOI_SC_
 CELL_LIB_VERILOG = $(CELL_LIB_BASE_PATH)8_CORE_LL@2.1@20131011.0/behaviour/verilog/C28SOI_SC_8_CORE_LL.v $(CELL_LIB_BASE_PATH)8_CLK_LL@2.2@20131011.0/behaviour/verilog/C28SOI_SC_8_CLK_LL.v
@@ -15,16 +17,16 @@ ifeq (${VENDOR}, Cadence)
 
     ifeq ($(NETLIST), 0)
 		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+RVFI
-		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -defparam tb_top.SymbolAddrs=\"${SIM_PATH}/sw_build/symbol_table.txt\" -timescale 1ps/1ps worklib.tb_top
+		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam ${TB}.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -defparam ${TB}.SymbolAddrs=\"${SIM_PATH}/sw_build/symbol_table.txt\" -timescale 1ps/1ps worklib.${TB}
 	else
 		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST +define+functional
 #		COMP_OPTS=-logfile log/ncvlog.log -errormax 15 -update -linedebug -status -messages -sv -nowarn NCEXDEP -work worklib +incdir+${RISCV_CRYPTO_RTL}/util +define+NETLIST
-		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam tb_top.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -defparam tb_top.SymbolAddrs=\"${SIM_PATH}/sw_build/symbol_table.txt\" -timescale 1ps/1ps worklib.tb_top
+		ELAB_OPTS=-logfile log/ncelab.log -errormax 15 -update -status -nowarn NCEXDEP -nowarn DSEM2009 -defparam ${TB}.SRAMInitFile=\"${SIM_PATH}/MemFile.vmem\" -defparam ${TB}.SymbolAddrs=\"${SIM_PATH}/sw_build/symbol_table.txt\" -timescale 1ps/1ps worklib.${TB}
 	endif
 
 	ELAB_EXEC=ncelab
 	SIM_EXEC=ncsim
-	SIM_OPTS=-logfile log/ncsim.log -errormax 15 -nowarn NCEXDEP -nowarn DSEM2009 worklib.tb_top
+	SIM_OPTS=-logfile log/ncsim.log -errormax 15 -nowarn NCEXDEP -nowarn DSEM2009 worklib.${TB}
 	SIM_GUI_OPTS=${SIM_OPTS} -gui -input ${SCRIPTS_DIR}/cadence_gui.tcl
 	SYN_EXEC=genus
 	SYN_OPTS=-f ${SCRIPTS_DIR}/genus/genus.tcl -no_gui -log log/genus -overwrite
