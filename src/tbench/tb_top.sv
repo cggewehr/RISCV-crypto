@@ -8,7 +8,7 @@
 `endif
 
 `ifndef RV32B
-  `define RV32B ibex_pkg::RV32BCrypto
+  `define RV32B ibex_pkg::RV32BNone
 `endif
 
 `ifndef RegFile
@@ -123,19 +123,30 @@ module tb_top #(
     .IO_RST_N(rst_n)
   );
 
-  simulator_ctrl #(
+
+  simulator_ctrl  #(
     .LogName("log/ibex_simple_system.log")
   ) u_simulator_ctrl (
-    .clk_i     (u_ibex_simple_system.clk_sys),
-    .rst_ni    (u_ibex_simple_system.rst_sys_n),
+    .clk_i       (u_ibex_simple_system.clk_sys),
+    .rst_ni      (u_ibex_simple_system.rst_sys_n),
 
-    .req_i     (u_ibex_simple_system.device_req[SimCtrl]),
-    .we_i      (u_ibex_simple_system.device_we[SimCtrl]),
-    .be_i      (u_ibex_simple_system.device_be[SimCtrl]),
-    .addr_i    (u_ibex_simple_system.device_addr[SimCtrl]),
-    .wdata_i   (u_ibex_simple_system.device_wdata[SimCtrl]),
-    .rvalid_o  (u_ibex_simple_system.device_rvalid[SimCtrl]),
-    .rdata_o   (u_ibex_simple_system.device_rdata[SimCtrl])
+    .awvalid_i (u_ibex_simple_system.device_awvalid[SimCtrl]),
+    .arvalid_i (u_ibex_simple_system.device_arvalid[SimCtrl]),
+    .rready_i  (u_ibex_simple_system.device_rready [SimCtrl]),
+    .wvalid_i  (u_ibex_simple_system.device_wvalid [SimCtrl]),
+    .be_i      (u_ibex_simple_system.device_wstrb  [SimCtrl]),
+    .araddr_i  (u_ibex_simple_system.device_araddr [SimCtrl]),
+    .awaddr_i  (u_ibex_simple_system.device_awaddr [SimCtrl]),
+    .wdata_i   (u_ibex_simple_system.device_wdata  [SimCtrl]),
+    .rvalid_o  (u_ibex_simple_system.device_rvalid [SimCtrl]),
+    .rdata_o   (u_ibex_simple_system.device_rdata  [SimCtrl]),
+    .arready_o (u_ibex_simple_system.device_arready[SimCtrl]),
+    .wready_o  (u_ibex_simple_system.device_wready [SimCtrl]),
+    .awready_o (u_ibex_simple_system.device_awready[SimCtrl]),
+    .bvalid_o  (u_ibex_simple_system.device_bvalid [SimCtrl]),
+    .bready_i  (u_ibex_simple_system.device_bready [SimCtrl]),
+    .bresp_o  (u_ibex_simple_system.device_bresp [SimCtrl]),
+    .rresp_o  (u_ibex_simple_system.device_rresp [SimCtrl])
   );
 
   `ifndef NETLIST

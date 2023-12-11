@@ -15,17 +15,30 @@ module timer #(
   input  logic                    clk_i,
   input  logic                    rst_ni,
   // Bus interface
-  input  logic                    timer_req_i,
 
-  input  logic [AddressWidth-1:0] timer_addr_i,
-  input  logic                    timer_we_i,
-  input  logic [ DataWidth/8-1:0] timer_be_i,
-  input  logic [   DataWidth-1:0] timer_wdata_i,
-  output logic                    timer_rvalid_o,
-  output logic [   DataWidth-1:0] timer_rdata_o,
-  output logic                    timer_err_o,
+  input               timer_awvalid_i,
+  input               timer_arvalid_i,
+  input               timer_rready_i,
+  output logic        timer_arready_o,
+  input               timer_wvalid_i,
+  input        [ 3:0] timer_be_i,
+  input        [31:0] timer_araddr_i,
+  input        [31:0] timer_awaddr_i,
+  input        [31:0] timer_wdata_i,
+  output logic        timer_rvalid_o,
+  output logic [31:0] timer_rdata_o,
+  output logic        timer_wready_o,
+  output logic        timer_awready_o,
+  output logic        timer_bvalid_o,
+  input               timer_bready_i,
+  output       [1:0]  timer_bresp_o,
+  output       [1:0]  timer_rresp_o,
+  input        [2:0]  timer_arprot_i,
+  input        [2:0]  timer_awprot_i,
+
   output logic                    timer_intr_o
 );
+
 
   // The timers are always 64 bits
   localparam int unsigned TW = 64;
@@ -37,7 +50,7 @@ module timer #(
   localparam bit [9:0] MTIMECMP_LOW = 8;
   localparam bit [9:0] MTIMECMP_HIGH = 12;
 
-  logic                 timer_we;
+  //logic                 timer_we;
   logic                 mtime_we, mtimeh_we;
   logic                 mtimecmp_we, mtimecmph_we;
   logic [DataWidth-1:0] mtime_wdata, mtimeh_wdata;
@@ -49,8 +62,75 @@ module timer #(
   logic [DataWidth-1:0] rdata_q, rdata_d;
   logic                 rvalid_q;
 
+
+
+  enum int unsigned {IDLE = 0, READ = 1, WRITE = 2} timer_state, timer_next_state;
+
+  assign timer_bresp_o = 2'b00;
+  assign timer_rresp_o = error_d;
+
+  always_comb begin
+    timer_next_state = IDLE;
+    case (timer_state)
+      IDLE: begin
+        if(timer_arvalid_i == 1'b1) timer_next_state = READ;
+        else if(timer_wvalid_i == 1'b1) timer_next_state = WRITE;
+      end
+      READ: if(timer_rready_i == 1'b1) timer_next_state = IDLE;
+      WRITE: if(timer_awvalid_i == 1'b1 && timer_wvalid_i == 1'b1) timer_next_state = IDLE;
+    endcase
+  end
+
+  always_ff@(posedge clk_i, negedge rst_ni) begin
+    if (~rst_ni)
+      timer_state <= IDLE;
+    else 
+      timer_state <= timer_next_state;
+    
+  end
+
+    // Generate next data
+  //assign mtime_d    = {(mtimeh_we    ? mtimeh_wdata    : mtime_inc[63:32]),
+  //                     (mtime_we     ? mtime_wdata     : mtime_inc[31:0])};
+  //assign mtimecmp_d = {(mtimecmph_we ? mtimecmph_wdata : mtimecmp_q[63:32]),
+  //                     (mtimecmp_we  ? mtimecmp_wdata  : mtimecmp_q[31:0])};
+
+  always_comb begin
+
+    
+    case (timer_state)
+      IDLE: begin
+        // read
+        timer_arready_o = 1'b0;
+        timer_rvalid_o = 1'b0;
+        // write
+        timer_wready_o = 1'b0;
+        timer_awready_o = 1'b0;
+        timer_bvalid_o = 1'b0;
+
+        mtime_d = mtime_inc;
+        mtimecmp_d = mtimecmp_q;
+      end
+      READ: begin
+        timer_rvalid_o = 1'b1;
+        timer_arready_o = 1'b1;
+        timer_rdata_o = rdata_d;
+      end
+      WRITE: begin
+        mtime_d    = {(mtimeh_we    ? mtimeh_wdata    : mtime_inc[63:32]),
+                       (mtime_we     ? mtime_wdata     : mtime_inc[31:0])};
+        mtimecmp_d = {(mtimecmph_we ? mtimecmph_wdata : mtimecmp_q[63:32]),
+                       (mtimecmp_we  ? mtimecmp_wdata  : mtimecmp_q[31:0])};
+
+        timer_wready_o = 1'b1;
+        timer_awready_o = 1'b1;
+        timer_bvalid_o = 1'b1;
+      end
+    endcase
+  end
+
   // Global write enable for all registers
-  assign timer_we = timer_req_i & timer_we_i;
+  //assign timer_we = timer_req_i & timer_we_i;
 
   // mtime increments every cycle
   assign mtime_inc = mtime_q + 64'd1;
@@ -69,16 +149,16 @@ module timer #(
   end
 
   // Generate write enables
-  assign mtime_we     = timer_we & (timer_addr_i[ADDR_OFFSET-1:0] == MTIME_LOW);
-  assign mtimeh_we    = timer_we & (timer_addr_i[ADDR_OFFSET-1:0] == MTIME_HIGH);
-  assign mtimecmp_we  = timer_we & (timer_addr_i[ADDR_OFFSET-1:0] == MTIMECMP_LOW);
-  assign mtimecmph_we = timer_we & (timer_addr_i[ADDR_OFFSET-1:0] == MTIMECMP_HIGH);
+  assign mtime_we     = timer_awvalid_i & (timer_awaddr_i[ADDR_OFFSET-1:0] == MTIME_LOW);
+  assign mtimeh_we    = timer_awvalid_i & (timer_awaddr_i[ADDR_OFFSET-1:0] == MTIME_HIGH);
+  assign mtimecmp_we  = timer_awvalid_i & (timer_awaddr_i[ADDR_OFFSET-1:0] == MTIMECMP_LOW);
+  assign mtimecmph_we = timer_awvalid_i & (timer_awaddr_i[ADDR_OFFSET-1:0] == MTIMECMP_HIGH);
 
   // Generate next data
-  assign mtime_d    = {(mtimeh_we    ? mtimeh_wdata    : mtime_inc[63:32]),
-                       (mtime_we     ? mtime_wdata     : mtime_inc[31:0])};
-  assign mtimecmp_d = {(mtimecmph_we ? mtimecmph_wdata : mtimecmp_q[63:32]),
-                       (mtimecmp_we  ? mtimecmp_wdata  : mtimecmp_q[31:0])};
+  //assign mtime_d    = {(mtimeh_we    ? mtimeh_wdata    : mtime_inc[63:32]),
+  //                     (mtime_we     ? mtime_wdata     : mtime_inc[31:0])};
+  //assign mtimecmp_d = {(mtimecmph_we ? mtimecmph_wdata : mtimecmp_q[63:32]),
+  //                     (mtimecmp_we  ? mtimecmp_wdata  : mtimecmp_q[31:0])};
 
   // Generate registers
   always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -114,7 +194,7 @@ module timer #(
   always_comb begin
     rdata_d = 'b0;
     error_d = 1'b0;
-    unique case (timer_addr_i[ADDR_OFFSET-1:0])
+    unique case (timer_araddr_i[ADDR_OFFSET-1:0])
       MTIME_LOW:     rdata_d = mtime_q[31:0];
       MTIME_HIGH:    rdata_d = mtime_q[63:32];
       MTIMECMP_LOW:  rdata_d = mtimecmp_q[31:0];
@@ -128,17 +208,17 @@ module timer #(
   end
 
   // error_q and rdata_q are only valid when rvalid_q is high
-  always_ff @(posedge clk_i) begin
+  /*always_ff @(posedge clk_i) begin
     if (timer_req_i) begin
       rdata_q <= rdata_d;
       error_q <= error_d;
     end
-  end
+  end*/
 
-  assign timer_rdata_o = rdata_q;
+  //assign timer_rdata_o = rdata_q;
 
   // Read data is always valid one cycle after a request
-  always_ff @(posedge clk_i or negedge rst_ni) begin
+  /*always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       rvalid_q <= 1'b0;
     end else begin
@@ -147,7 +227,7 @@ module timer #(
   end
 
   assign timer_rvalid_o = rvalid_q;
-  assign timer_err_o    = error_q;
+  assign timer_err_o    = error_q;*/
 
   // Assertions
   `ASSERT_INIT(param_legal, DataWidth == 32)

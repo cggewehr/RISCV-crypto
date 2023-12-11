@@ -56,28 +56,50 @@ module ibex_simple_system import ibex_pkg::*; #(
   logic timer_irq;
 
   // host and device signals
-  logic           host_req    [NrHosts];
-  logic           host_gnt    [NrHosts];
-  logic [31:0]    host_addr   [NrHosts];
-  logic           host_we     [NrHosts];
-  logic [ 3:0]    host_be     [NrHosts];
-  logic [31:0]    host_wdata  [NrHosts];
-  logic           host_rvalid [NrHosts];
-  logic [31:0]    host_rdata  [NrHosts];
-  logic           host_err    [NrHosts];
+  logic           host_awvalid   [NrHosts];
+  logic           host_arvalid   [NrHosts];
+  logic           host_rready    [NrHosts];
+  logic           host_wvalid    [NrHosts];
+  logic [31:0]    host_araddr    [NrHosts];
+  logic [ 3:0]    host_wstrb     [NrHosts];
+  logic [31:0]    host_wdata     [NrHosts];
+  logic           host_rvalid    [NrHosts];
+  logic [31:0]    host_rdata     [NrHosts];
+  logic           host_awready     [NrHosts];
+  logic           host_wready      [NrHosts];
+  logic [31:0]    host_awaddr      [NrHosts];
+  logic           host_arready      [NrHosts];
+  logic           host_bvalid      [NrHosts];
+  logic           host_bready      [NrHosts];
+  logic [1:0]     host_bresp     [NrHosts];
+  logic [1:0]     host_rresp     [NrHosts];
+  logic [2:0]     host_arprot    [NrHosts];
+  logic [2:0]     host_awprot    [NrHosts];
+
 
   logic [6:0]     data_rdata_intg;
   logic [6:0]     instr_rdata_intg;
 
   // devices (slaves)
-  logic           device_req    [NrDevices];
-  logic [31:0]    device_addr   [NrDevices];
-  logic           device_we     [NrDevices];
-  logic [ 3:0]    device_be     [NrDevices];
-  logic [31:0]    device_wdata  [NrDevices];
-  logic           device_rvalid [NrDevices];
-  logic [31:0]    device_rdata  [NrDevices];
-  logic           device_err    [NrDevices];
+  logic           device_awvalid   [NrDevices];
+  logic           device_arvalid   [NrDevices];
+  logic           device_rready    [NrDevices];
+  logic           device_wvalid    [NrDevices];
+  logic [31:0]    device_araddr    [NrDevices];
+  logic [ 3:0]    device_wstrb     [NrDevices];
+  logic [31:0]    device_wdata     [NrDevices];
+  logic           device_rvalid    [NrDevices];
+  logic [31:0]    device_rdata     [NrDevices];
+  logic           device_awready   [NrDevices];
+  logic           device_wready    [NrDevices];
+  logic [31:0]    device_awaddr    [NrDevices];
+  logic           device_arready   [NrDevices];
+  logic           device_bvalid    [NrDevices];
+  logic           device_bready    [NrDevices];
+  logic [1:0]     device_bresp     [NrDevices];
+  logic [1:0]     device_rresp     [NrDevices];
+  logic [2:0]     device_arprot    [NrDevices];
+  logic [2:0]     device_awprot    [NrDevices];
 
   // Device address mapping
   logic [31:0] cfg_device_addr_base [NrDevices];
@@ -116,10 +138,10 @@ module ibex_simple_system import ibex_pkg::*; #(
   // `endif
 
   // Tie-off unused error signals
-  assign device_err[Ram] = 1'b0;
-  assign device_err[SimCtrl] = 1'b0;
+  //assign device_err[Ram] = 1'b0;
+  //assign device_err[SimCtrl] = 1'b0;
 
-  bus #(
+  bus_axi #(
     .NrDevices    ( NrDevices ),
     .NrHosts      ( NrHosts   ),
     .DataWidth    ( 32        ),
@@ -127,25 +149,45 @@ module ibex_simple_system import ibex_pkg::*; #(
   ) u_bus (
     .clk_i               (clk_sys),
     .rst_ni              (rst_sys_n),
+    .m_awvalid          (host_awvalid),
+    .m_arvalid          (host_arvalid),
+    .m_rready           (host_rready),
+    .m_awready          (host_awready),
+    .m_wready           (host_wready),
+    .m_awaddr           (host_awaddr),
+    .m_araddr           (host_araddr),
+    .m_wstrb            (host_wstrb),
+    .m_wdata            (host_wdata),
+    .m_wvalid           (host_wvalid),
+    .m_arready          (host_arready),
+    .m_rvalid           (host_rvalid),
+    .m_rdata            (host_rdata),
+    .m_bvalid           (host_bvalid),
+    .m_bready           (host_bready),
+    .m_bresp            (host_bresp),
+    .m_rresp            (host_rresp),
+    .m_awprot           (host_awprot),
+    .m_arprot           (host_arprot),
 
-    .host_req_i          (host_req     ),
-    .host_gnt_o          (host_gnt     ),
-    .host_addr_i         (host_addr    ),
-    .host_we_i           (host_we      ),
-    .host_be_i           (host_be      ),
-    .host_wdata_i        (host_wdata   ),
-    .host_rvalid_o       (host_rvalid  ),
-    .host_rdata_o        (host_rdata   ),
-    .host_err_o          (host_err     ),
-
-    .device_req_o        (device_req   ),
-    .device_addr_o       (device_addr  ),
-    .device_we_o         (device_we    ),
-    .device_be_o         (device_be    ),
-    .device_wdata_o      (device_wdata ),
-    .device_rvalid_i     (device_rvalid),
-    .device_rdata_i      (device_rdata ),
-    .device_err_i        (device_err   ),
+    .s_awvalid          (device_awvalid),
+    .s_arvalid          (device_arvalid),
+    .s_rready           (device_rready),
+    .s_awready          (device_awready),
+    .s_wready           (device_wready),
+    .s_awaddr           (device_awaddr),
+    .s_araddr           (device_araddr),
+    .s_wstrb            (device_wstrb),
+    .s_wdata            (device_wdata),
+    .s_wvalid           (device_wvalid),
+    .s_arready          (device_arready),
+    .s_rvalid           (device_rvalid),
+    .s_rdata            (device_rdata),
+    .s_bvalid           (device_bvalid), 
+    .s_bready           (device_bready),
+    .s_bresp            (device_bresp),
+    .s_rresp            (device_rresp),
+    .s_awprot           (device_awprot),
+    .s_arprot           (device_arprot),
 
     .cfg_device_addr_base,
     .cfg_device_addr_mask
@@ -210,17 +252,28 @@ module ibex_simple_system import ibex_pkg::*; #(
     .instr_rdata_intg_i     (instr_rdata_intg),
     .instr_err_i            (instr_err),
 
-    .data_req_o             (host_req[CoreD]),
-    .data_gnt_i             (host_gnt[CoreD]),
-    .data_rvalid_i          (host_rvalid[CoreD]),
-    .data_we_o              (host_we[CoreD]),
-    .data_be_o              (host_be[CoreD]),
-    .data_addr_o            (host_addr[CoreD]),
-    .data_wdata_o           (host_wdata[CoreD]),
+    .data_awvalid_o          (host_awvalid[CoreD]),
+    .data_arvalid_o          (host_arvalid[CoreD]),
+    .data_rready_o           (host_rready[CoreD]),
+    .data_awready_i          (host_awready[CoreD]),
+    .data_wready_i           (host_wready[CoreD]),
+    .data_awaddr_o           (host_awaddr[CoreD]),
+    .data_araddr_o           (host_araddr[CoreD]),
+    .data_wstrb_o            (host_wstrb[CoreD]),
+    .data_wdata_o            (host_wdata[CoreD]),
+    .data_wvalid_o           (host_wvalid[CoreD]),
+    .data_arready_i          (host_arready[CoreD]),
+    .data_rvalid_i           (host_rvalid[CoreD]),
+    .data_rdata_i            (host_rdata[CoreD]),
+    .data_bvalid_i           (host_bvalid[CoreD]),
+    .data_bready_o           (host_bready[CoreD]),
+    .data_bresp_i            (host_bresp[CoreD]),
+    .data_rresp_i            (host_rresp[CoreD]),
+    .data_arprot_o           (host_arprot[CoreD]),
+    .data_awprot_o           (host_awprot[CoreD]),
+
     .data_wdata_intg_o      (),
-    .data_rdata_i           (host_rdata[CoreD]),
     .data_rdata_intg_i      (data_rdata_intg),
-    .data_err_i             (host_err[CoreD]),
 
     .irq_software_i         (1'b0),
     .irq_timer_i            (timer_irq),
@@ -252,13 +305,25 @@ module ibex_simple_system import ibex_pkg::*; #(
     .clk_i       (clk_sys),
     .rst_ni      (rst_sys_n),
 
-    .a_req_i     (device_req[Ram]),
-    .a_we_i      (device_we[Ram]),
-    .a_be_i      (device_be[Ram]),
-    .a_addr_i    (device_addr[Ram]),
-    .a_wdata_i   (device_wdata[Ram]),
-    .a_rvalid_o  (device_rvalid[Ram]),
-    .a_rdata_o   (device_rdata[Ram]),
+    .a_awvalid_i (device_awvalid[Ram]),
+    .a_arvalid_i (device_arvalid[Ram]),
+    .a_rready_i  (device_rready [Ram]),
+    .a_wvalid_i  (device_wvalid [Ram]),
+    .a_be_i      (device_wstrb  [Ram]),
+    .a_araddr_i  (device_araddr [Ram]),
+    .a_awaddr_i  (device_awaddr [Ram]),
+    .a_wdata_i   (device_wdata  [Ram]),
+    .a_rvalid_o  (device_rvalid [Ram]),
+    .a_rdata_o   (device_rdata  [Ram]),
+    .a_arready_o (device_arready[Ram]),
+    .a_wready_o  (device_wready [Ram]),
+    .a_awready_o (device_awready[Ram]),
+    .a_bvalid_o  (device_bvalid [Ram]),
+    .a_bready_i  (device_bready [Ram]),
+    .a_bresp_o   (device_bresp  [Ram]),
+    .a_rresp_o   (device_rresp  [Ram]),
+    .a_arprot_i  (device_arprot [Ram]),
+    .a_awprot_i  (device_awprot [Ram]),
 
     .b_req_i     (instr_req),
     .b_we_i      (1'b0),
@@ -269,22 +334,33 @@ module ibex_simple_system import ibex_pkg::*; #(
     .b_rdata_o   (instr_rdata)
   );
 
-  timer #(
+  timer #(    
     .DataWidth    (32),
     .AddressWidth (32)
   ) u_timer (
-    .clk_i          (clk_sys),
-    .rst_ni         (rst_sys_n),
+    .clk_i       (clk_sys),
+    .rst_ni      (rst_sys_n),
 
-    .timer_req_i    (device_req[Timer]),
-    .timer_we_i     (device_we[Timer]),
-    .timer_be_i     (device_be[Timer]),
-    .timer_addr_i   (device_addr[Timer]),
-    .timer_wdata_i  (device_wdata[Timer]),
-    .timer_rvalid_o (device_rvalid[Timer]),
-    .timer_rdata_o  (device_rdata[Timer]),
-    .timer_err_o    (device_err[Timer]),
-    .timer_intr_o   (timer_irq)
+    .timer_awvalid_i (device_awvalid[Timer]),
+    .timer_arvalid_i (device_arvalid[Timer]),
+    .timer_rready_i  (device_rready [Timer]),
+    .timer_wvalid_i  (device_wvalid [Timer]),
+    .timer_be_i      (device_wstrb  [Timer]),
+    .timer_araddr_i  (device_araddr [Timer]),
+    .timer_awaddr_i  (device_awaddr [Timer]),
+    .timer_wdata_i   (device_wdata  [Timer]),
+    .timer_rvalid_o  (device_rvalid [Timer]),
+    .timer_rdata_o   (device_rdata  [Timer]),
+    .timer_arready_o (device_arready[Timer]),
+    .timer_wready_o  (device_wready [Timer]),
+    .timer_awready_o (device_awready[Timer]),
+    .timer_bvalid_o  (device_bvalid [Timer]),
+    .timer_bready_i  (device_bready [Timer]),
+    .timer_bresp_o   (device_bresp  [Timer]),
+    .timer_rresp_o   (device_rresp  [Timer]),
+    .timer_arprot_i  (device_arprot [Timer]),
+    .timer_awprot_i  (device_awprot [Timer]),
+    .timer_intr_o    (timer_irq)
   );
 
 endmodule

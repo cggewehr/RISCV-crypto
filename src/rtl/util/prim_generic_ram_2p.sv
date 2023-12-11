@@ -17,13 +17,26 @@ module prim_ram_2p import prim_ram_2p_pkg::*; #(
 ) (
   input clk_a_i,
   input clk_b_i,
+  input rst_ni,
 
-  input                    a_req_i,
+  input                    a_awvalid_i,
+  input                    a_arvalid_i,
+  input                    a_rready_i,
+  input                    a_wvalid_i,
+
   input                    a_write_i,
-  input        [Aw-1:0]    a_addr_i,
+  input        [Aw-1:0]    a_araddr_i,
+  input        [Aw-1:0]    a_awaddr_i,
   input        [Width-1:0] a_wdata_i,
-  input  logic [Width-1:0] a_wmask_i,
+  input        [Width-1:0] a_wmask_i,
   output logic [Width-1:0] a_rdata_o,
+  output logic             a_rvalid_o,
+  output logic             a_arready_o,
+
+  output logic             a_wready_o,
+  output logic             a_awready_o,
+  output logic             a_bvalid_o,
+  input                    a_bready_i,
 
 
   input                    b_req_i,
@@ -32,6 +45,7 @@ module prim_ram_2p import prim_ram_2p_pkg::*; #(
   input        [Width-1:0] b_wdata_i,
   input  logic [Width-1:0] b_wmask_i,
   output logic [Width-1:0] b_rdata_o,
+
 
   input ram_2p_cfg_t       cfg_i
 );
@@ -62,7 +76,7 @@ module prim_ram_2p import prim_ram_2p_pkg::*; #(
     assign b_wmask[k] = &b_wmask_i[k*DataBitsPerMask +: DataBitsPerMask];
 
     // Ensure that all mask bits within a group have the same value for a write
-    `ASSERT(MaskCheckPortA_A, a_req_i && a_write_i |->
+    `ASSERT(MaskCheckPortA_A, a_awvalid_i && a_write_i |-> 
         a_wmask_i[k*DataBitsPerMask +: DataBitsPerMask] inside {{DataBitsPerMask{1'b1}}, '0},
         clk_a_i, '0)
     `ASSERT(MaskCheckPortB_A, b_req_i && b_write_i |->
@@ -70,22 +84,77 @@ module prim_ram_2p import prim_ram_2p_pkg::*; #(
         clk_b_i, '0)
   end
 
-  // Xilinx FPGA specific Dual-port RAM coding style
-  // using always instead of always_ff to avoid 'ICPD  - illegal combination of drivers' error
-  // thrown due to 'mem' being driven by two always processes below
-  always @(posedge clk_a_i) begin
-    if (a_req_i) begin
-      if (a_write_i) begin
-        for (int i=0; i < MaskWidth; i = i + 1) begin
-          if (a_wmask[i]) begin
-            mem[a_addr_i][i*DataBitsPerMask +: DataBitsPerMask] <=
-              a_wdata_i[i*DataBitsPerMask +: DataBitsPerMask];
+  enum logic[1:0] {IDLE = 0, READ = 1, WRITE = 2} a_state, a_next_state;
+
+  always_comb begin
+    a_next_state = IDLE;
+    case (a_state)
+      IDLE: begin
+        if(a_arvalid_i) a_next_state = READ;
+        else if(a_wvalid_i) a_next_state = WRITE;
+      end
+      READ: begin
+        if (a_rready_i) begin
+          if(a_arvalid_i) a_next_state = READ;
+          else if(a_wvalid_i) a_next_state = WRITE;
+          else a_next_state = IDLE;
+        end
+      end
+      WRITE: begin
+        if (a_bready_i) begin
+          if(a_arvalid_i) a_next_state = READ;
+          else if(a_wvalid_i) a_next_state = WRITE;
+          else a_next_state = IDLE;
+        end
+      end
+      default: a_next_state = IDLE;
+    endcase
+  end
+
+  always_ff@(posedge clk_a_i, negedge rst_ni) begin
+    if (~rst_ni) begin
+      a_state <= IDLE;
+    end
+    else begin
+      a_state <= a_next_state;
+      case (a_state)
+
+        WRITE: begin
+          for (int i=0; i < MaskWidth; i = i + 1) begin
+            if (a_wmask[i]) begin
+              mem[a_awaddr_i][i*DataBitsPerMask +: DataBitsPerMask] <=
+                a_wdata_i[i*DataBitsPerMask +: DataBitsPerMask];
+            end
           end
         end
-      end else begin
-        a_rdata_o <= mem[a_addr_i];
-      end
+        READ: a_rdata_o <= mem[a_araddr_i];
+        IDLE: begin
+          if (a_arvalid_i) a_rdata_o <= mem[a_araddr_i];
+        end
+      endcase
     end
+  end
+  
+
+  always_comb begin
+    a_wready_o = 1'b1;
+    a_awready_o = 1'b1;
+    a_arready_o = 1'b1;
+    
+    case (a_state)
+      IDLE: begin
+        // read
+        a_rvalid_o = 1'b0;
+        // write
+        a_bvalid_o = 1'b0;
+      end
+      READ: begin
+        a_rvalid_o = 1'b1;
+      end
+      WRITE: begin
+        a_bvalid_o = 1'b1;
+      end
+    endcase
   end
 
   always @(posedge clk_b_i) begin

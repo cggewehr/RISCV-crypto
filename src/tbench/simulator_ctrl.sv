@@ -29,13 +29,24 @@ module simulator_ctrl #(
   input               clk_i,
   input               rst_ni,
 
-  input               req_i,
-  input               we_i,
+  input               awvalid_i,
+  input               arvalid_i,
+  input               rready_i,
+  output logic        arready_o,
+  input               wvalid_i,
   input        [ 3:0] be_i,
-  input        [31:0] addr_i,
+  input        [31:0] araddr_i,
+  input        [31:0] awaddr_i,
   input        [31:0] wdata_i,
   output logic        rvalid_o,
-  output logic [31:0] rdata_o
+  output logic [31:0] rdata_o,
+  output logic        wready_o,
+  output logic        awready_o,
+  output logic        bvalid_o,
+  input               bready_i,
+  output       [1:0]  bresp_o,
+  output       [1:0]  rresp_o
+
 );
 
   localparam logic [7:0] CHAR_OUT_ADDR = 8'h0;
@@ -46,6 +57,9 @@ module simulator_ctrl #(
 
   integer log_fd;
 
+  assign bresp_o = 2'b00;
+  assign rresp_o = 2'b00;
+
   initial begin
     log_fd = $fopen(LogName, "w");
   end
@@ -54,18 +68,24 @@ module simulator_ctrl #(
     $fclose(log_fd);
   end
 
-  assign ctrl_addr = addr_i[9:2];
+  assign awready_o = 1'b1;
+  assign arready_o = 1'b1;
+  assign wready_o = 1'b1;
+
+  assign ctrl_addr = awaddr_i[9:2];
 
   // always_ff @(posedge clk_i or negedge rst_ni) begin
   always @(posedge clk_i or negedge rst_ni) begin
     if (~rst_ni) begin
+      bvalid_o <= 0;
       rvalid_o <= 0;
       sim_finish <= 'b0;
     end else begin
       // Immeditely respond to any request
-      rvalid_o <= req_i;
+      bvalid_o <= awvalid_i;
 
-      if (req_i & we_i) begin
+      if (awvalid_i & wvalid_i) begin
+        
         case (ctrl_addr)
           CHAR_OUT_ADDR: begin
             if (be_i[0]) begin
