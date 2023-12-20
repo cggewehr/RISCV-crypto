@@ -75,6 +75,10 @@ module ibex_ex_block #(
   logic [33:0] multdiv_imd_val_d[2];
   logic [ 1:0] multdiv_imd_val_we;
 
+  logic [3:0] kyber_compress_bits;
+  logic [2:0] cbd_result_high;
+  logic [2:0] cbd_result_low;
+
   /*
     The multdiv_i output is never selected if RV32M=RV32MNone
     At synthesis time, all the combinational and sequential logic
@@ -119,6 +123,8 @@ module ibex_ex_block #(
     assign branch_target_o = alu_adder_result_ex_o;
   end
 
+  assign kyber_compress_bits = alu_operand_b_i[3:0] & {4{multdiv_operator_i == MD_OP_KYBER_COMPRESS}};
+
   /////////
   // ALU //
   /////////
@@ -135,9 +141,12 @@ module ibex_ex_block #(
     .imd_val_d_o        (alu_imd_val_d),
     .multdiv_operand_a_i(multdiv_alu_operand_a),
     .multdiv_operand_b_i(multdiv_alu_operand_b),
-    .multdiv_sel_i      (multdiv_sel),
+    // .multdiv_sel_i      (multdiv_sel),
+    .multdiv_sel_i      (multdiv_sel && !(alu_operator_i inside {ALU_KYBER_ADD, ALU_KYBER_SUB})),
     .adder_result_o     (alu_adder_result_ex_o),
     .adder_result_ext_o (alu_adder_result_ext),
+    .cbd_result_high_o  (cbd_result_high),
+    .cbd_result_low_o   (cbd_result_low),
     .result_o           (alu_result),
     .comparison_result_o(alu_cmp_result),
     .is_equal_result_o  (alu_is_equal_result)
@@ -176,28 +185,32 @@ module ibex_ex_block #(
     ibex_multdiv_fast #(
       .RV32M(RV32M)
     ) multdiv_i (
-      .clk_i             (clk_i),
-      .rst_ni            (rst_ni),
-      .mult_en_i         (mult_en_i),
-      .div_en_i          (div_en_i),
-      .mult_sel_i        (mult_sel_i),
-      .div_sel_i         (div_sel_i),
-      .operator_i        (multdiv_operator_i),
-      .signed_mode_i     (multdiv_signed_mode_i),
-      .op_a_i            (multdiv_operand_a_i),
-      .op_b_i            (multdiv_operand_b_i),
-      .alu_operand_a_o   (multdiv_alu_operand_a),
-      .alu_operand_b_o   (multdiv_alu_operand_b),
-      .alu_adder_ext_i   (alu_adder_result_ext),
-      .alu_adder_i       (alu_adder_result_ex_o),
-      .equal_to_zero_i   (alu_is_equal_result),
-      .data_ind_timing_i (data_ind_timing_i),
-      .imd_val_q_i       (imd_val_q_i),
-      .imd_val_d_o       (multdiv_imd_val_d),
-      .imd_val_we_o      (multdiv_imd_val_we),
-      .multdiv_ready_id_i(multdiv_ready_id_i),
-      .valid_o           (multdiv_valid),
-      .multdiv_result_o  (multdiv_result)
+      .clk_i                (clk_i),
+      .rst_ni               (rst_ni),
+      .mult_en_i            (mult_en_i),
+      .div_en_i             (div_en_i),
+      .mult_sel_i           (mult_sel_i),
+      .div_sel_i            (div_sel_i),
+      .operator_i           (multdiv_operator_i),
+      .alu_operator_i       (alu_operator_i),
+      .signed_mode_i        (multdiv_signed_mode_i),
+      .op_a_i               (multdiv_operand_a_i),
+      .op_b_i               (multdiv_operand_b_i),
+      .alu_operand_a_o      (multdiv_alu_operand_a),
+      .alu_operand_b_o      (multdiv_alu_operand_b),
+      .alu_adder_ext_i      (alu_adder_result_ext),
+      .alu_adder_i          (alu_adder_result_ex_o),
+      .alu_cbd_high_i       (cbd_result_high),
+      .alu_cbd_low_i        (cbd_result_low),
+      .equal_to_zero_i      (alu_is_equal_result),
+      .data_ind_timing_i    (data_ind_timing_i),
+      .kyber_compress_bits_i(kyber_compress_bits),
+      .imd_val_q_i          (imd_val_q_i),
+      .imd_val_d_o          (multdiv_imd_val_d),
+      .imd_val_we_o         (multdiv_imd_val_we),
+      .multdiv_ready_id_i   (multdiv_ready_id_i),
+      .valid_o              (multdiv_valid),
+      .multdiv_result_o     (multdiv_result)
     );
   end
 

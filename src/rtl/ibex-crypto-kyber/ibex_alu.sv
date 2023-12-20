@@ -27,6 +27,9 @@ module ibex_alu #(
   output logic [31:0]       adder_result_o,
   output logic [33:0]       adder_result_ext_o,
 
+  output logic [2:0]        cbd_result_high_o,
+  output logic [2:0]        cbd_result_low_o,
+
   output logic [31:0]       result_o,
   output logic              comparison_result_o,
   output logic              is_equal_result_o
@@ -108,8 +111,9 @@ module ibex_alu #(
     unique case (1'b1)
       multdiv_sel_i:        adder_in_b = multdiv_operand_b_i;
       adder_op_b_negate:    adder_in_b = operand_b_neg;
-      adder_op_b_kyber_add: adder_in_b = {4{1'b0}, operand_b_i[27:16], 4{1'b0}, operand_b_i[11:0], 1'b0};
-      adder_op_b_kyber_sub: adder_in_b = {4{1'b0}, operand_b_neg[27:16], 1'b1, 3{1'b0}, operand_b_neg[11:0], 1'b1};
+      adder_op_b_kyber_add: adder_in_b = {{4{1'b0}}, operand_b_i[27:16], {4{1'b0}}, operand_b_i[11:0], 1'b0};
+      // adder_op_b_kyber_sub: adder_in_b = {{4{1'b0}}, operand_b_neg[27:16], 1'b1, {3{1'b0}}, operand_b_neg[11:0], 1'b1};
+      adder_op_b_kyber_sub: adder_in_b = {{4{1'b0}}, operand_b_neg[28:17], 1'b1, {3{1'b0}}, operand_b_neg[12:1], 1'b1};
       default:              adder_in_b = {operand_b_i, 1'b0};
     endcase
   end
@@ -1329,27 +1333,14 @@ module ibex_alu #(
   //  CBD  //
   ///////////
 
-  logic is_cbd;
   logic eta_is_3;
-  logic[1:0] set_bit_count_low, set_bit_count_high;
-  logic twos_comp_low, twos_comp_high;
-  logic[2:0] cbd_low, cbd_high;
-
-  assign is_cbd = (operator_i == ALU_KYBER_CBD3 || operator_i == ALU_KYBER_CBD2);
   assign eta_is_3 = (operator_i == ALU_KYBER_CBD3);
 
-  assign set_bit_count_low = eta_is_3 ? (operand_a_i[0] ^ operand_a_i[3]) + (operand_a_i[1] ^ operand_a_i[4]) + (operand_a_i[2] ^ operand_a_i[5]) :
-                                        (operand_a_i[0] ^ operand_a_i[2]) + (operand_a_i[1] ^ operand_a_i[2]);
+  assign cbd_result_high_o = eta_is_3 ? (operand_a_i[6] + operand_a_i[7] + operand_a_i[8]) - (operand_a_i[9] + operand_a_i[10] + operand_a_i[11]) : 
+                                        (operand_a_i[4] + operand_a_i[5])                  - (operand_a_i[6] + operand_a_i[7]);
 
-  assign set_bit_count_high = eta_is_3 ? (operand_a_i[6] ^ operand_a_i[9]) + (operand_a_i[7] ^ operand_a_i[10]) + (operand_a_i[8] ^ operand_a_i[11]) :
-                                         (operand_a_i[6] ^ operand_a_i[8]) + (operand_a_i[7] ^ operand_a_i[9]);
-
-  // Is B > A?
-  assign twos_comp_low = eta_is_3 ? operand_a_i[5:3] > operand_a_i[2:0] : operand_a_i[3:2] > operand_a_i[1:0];
-  assign twos_comp_high = eta_is_3 ? operand_a_i[11:9] > operand_a_i[8:6] : operand_a_i[7:6] > operand_a_i[5:4];
-
-  assign cbd_low = twos_comp_low ? -set_bit_count_low : set_bit_count_low;
-  assign cbd_high = twos_comp_high ? -set_bit_count_high : set_bit_count_high;
+  assign cbd_result_low_o = eta_is_3 ? (operand_a_i[0] + operand_a_i[1] + operand_a_i[2]) - (operand_a_i[3] + operand_a_i[4] + operand_a_i[5]) : 
+                                       (operand_a_i[0] + operand_a_i[1])                  - (operand_a_i[2] + operand_a_i[3]);
 
   ////////////////
   // Result mux //
@@ -1429,7 +1420,7 @@ module ibex_alu #(
       ALU_CLMUL, ALU_CLMULR,
       ALU_CLMULH: result_o = clmul_result;
 
-      ALU_KYBER_CBD2, ALU_KYBER_CBD3: result_o = {12{cbd_high[3]}, cbd_high, 12{cbd_low[3]}, cbd_low};
+      // ALU_KYBER_CBD2, ALU_KYBER_CBD3: result_o = {{12{cbd_high[2]}}, cbd_high, {12{cbd_low[2]}}, cbd_low};
 
       default: ;
     endcase

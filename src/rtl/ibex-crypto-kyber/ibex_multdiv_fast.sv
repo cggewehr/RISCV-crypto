@@ -30,8 +30,11 @@ module ibex_multdiv_fast #(
   input  logic [31:0]      op_b_i,
   input  logic [33:0]      alu_adder_ext_i,
   input  logic [31:0]      alu_adder_i,
+  input  logic [2:0]       alu_cbd_high_i,
+  input  logic [2:0]       alu_cbd_low_i,
   input  logic             equal_to_zero_i,
   input  logic             data_ind_timing_i,
+  input  logic[3:0]        kyber_compress_bits_i,
 
   output logic [32:0]      alu_operand_a_o,
   output logic [32:0]      alu_operand_b_o,
@@ -50,7 +53,7 @@ module ibex_multdiv_fast #(
 
   // Kyber Barrett reduction (CGG)
   logic [32:0] alu_operand_a_div, alu_operand_a_kyber;
-  logic [32:0] alu_operand_b_div, alu_operand_a_kyber;
+  logic [32:0] alu_operand_b_div, alu_operand_b_kyber;
   logic [1:0] barrett_imd_we;
 
   // Both multiplier variants
@@ -65,6 +68,8 @@ module ibex_multdiv_fast #(
   logic [33:0] mac_res_d, op_remainder_d;
   // Raw output of MAC calculation
   logic [33:0] mac_res;
+
+  logic [33:0] barrett_imd_d;
 
   // Divider signals
   logic        div_sign_a, div_sign_b;
@@ -130,12 +135,13 @@ module ibex_multdiv_fast #(
   // Intermediate value register shared with ALU
   assign imd_val_d_o[0] = div_sel_i ? op_remainder_d : mac_res_d;
   // assign imd_val_we_o[0] = multdiv_en;
-  assign imd_val_we_o[0] = (operator_i == MD_OP_MUL_MOD_3329 || operator_i == MD_OP_KYBER_COMPRESS) ? barrett_imd_we[0] : multdiv_en;
+  assign imd_val_we_o[0] = (operator_i == MD_OP_KYBER_MUL || operator_i == MD_OP_KYBER_COMPRESS) ? barrett_imd_we[0] : multdiv_en;
 
   // assign imd_val_d_o[1] = {2'b0, op_denominator_d};
-  assign imd_val_d_o[1] = (operator_i == MD_OP_MUL_MOD_3329 || operator_i == MD_OP_KYBER_COMPRESS) ? mac_res_d : {2'b0, op_denominator_d};
+  // assign imd_val_d_o[1] = (operator_i == MD_OP_KYBER_MUL || operator_i == MD_OP_KYBER_COMPRESS) ? mac_res_d : {2'b0, op_denominator_d};
+  assign imd_val_d_o[1] = (operator_i == MD_OP_KYBER_MUL || operator_i == MD_OP_KYBER_COMPRESS) ? barrett_imd_d : {2'b0, op_denominator_d};
   // assign imd_val_we_o[1] = div_en_internal;
-  assign imd_val_we_o[1] = (operator_i == MD_OP_MUL_MOD_3329 || operator_i == MD_OP_KYBER_COMPRESS) ? barrett_imd_we[1] : div_en_internal;
+  assign imd_val_we_o[1] = (operator_i == MD_OP_KYBER_MUL || operator_i == MD_OP_KYBER_COMPRESS) ? barrett_imd_we[1] : div_en_internal;
   assign op_denominator_q = imd_val_q_i[1][31:0];
 
   logic [1:0] unused_imd_val;
@@ -216,7 +222,7 @@ module ibex_multdiv_fast #(
 
       mult_hold = 1'b0;
 
-      if (operator_i == MD_OP_MUL_MOD_3329)
+      if (operator_i == MD_OP_KYBER_MUL)
         $fatal("Multiplication mod 3329 is only implemented for RV32M = RV32MFast");
 
       unique case (mult_state_q)
@@ -279,15 +285,9 @@ module ibex_multdiv_fast #(
     logic [15:0] mult_op_b;
 
     typedef enum logic [2:0] {
-      // ALBL, ALBH, AHBL, AHBH
-      ALBL, ALBH, AHBL, AHBH, BARRETT_MULT_M, BARRETT_MULT_Q, BARRETT_SUB_ADJUST, KYBER_COMPRESS
+      ALBL, ALBH, AHBL, AHBH, KYBER_BARRETT_MULT_M, KYBER_BARRETT_MULT_Q, KYBER_BARRETT_SUB_ADJUST, KYBER_COMPRESS
     } mult_fsm_e;
     mult_fsm_e mult_state_q, mult_state_d;
-
-    typedef enum logic {
-      MULT_M, MULT_Q
-    } barrett_adder_chain_sel_e;
-    barrett_adder_chain_sel_e barrett_adder_chain_sel;
 
     // The 2 MSBs of mac_res_ext (mac_res_ext[34:33]) are always equal since:
     // 1. The 2 MSBs of the multiplicants are always equal, and
@@ -298,48 +298,33 @@ module ibex_multdiv_fast #(
     assign mac_res_ext    = $unsigned(mac_res_signed);
     assign mac_res        = mac_res_ext[33:0];
 
-    // Barrett reduction parameter m(k=24) = 5039 = 2**12 + 2**10 - 2**6 - 2**4 - 2**0
-    // Barrett reduction parameter q = 3329 = 2**11 + 2**10 + 2**8 + 2**0
-    // logic[35:0] barrett_adder_chain_op_m[4], barrett_adder_chain_op_q[4];
-    // logic[35:0] barrett_adder_chain_op_m[4];
-    // logic[35:0] barrett_adder_chain;
-    logic[36:0] constant_5039_mult;
+    logic[23:0] constant_5039_mult_operand;
+    logic[36:0] constant_5039_mult_result;
 
-    // assign constant_5039_mult = imd_val_q_i[0][23:0] * 13'd5039;
-    // assign constant_5039_mult = (-imd_val_q_i[0][23:0] << 6) + (-imd_val_q_i[0][23:0] << 4) + (-imd_val_q_i[0][23:0]) + alu_adder_i << 10;
-    assign constant_5039_mult = (alu_adder_i[25:0] << 10) - (imd_val_q_i[0][23:0] << 6) - (imd_val_q_i[0][23:0] << 4) - (imd_val_q_i[0][23:0]);
-
-    // assign barrett_adder_chain_op_m = '{-imd_val_q_i[0][23:0] << 6, -imd_val_q_i[0][23:0] << 4, -imd_val_q_i[0][23:0], alu_adder_i << 10};
-    // assign barrett_adder_chain_op_q = '{ imd_val_q_i[0][23:0] << 8,  imd_val_q_i[0][23:0]     , 0                    , alu_adder_i << 10};
-
-    // always_comb begin
-
-    //   barrett_adder_chain = 0;
-
-    //   for (int i = 0; i < 4; i++)
-    //     // barrett_adder_chain += (barrett_adder_chain_sel == MULT_M) ? barrett_adder_chain_op_m[i] : barrett_adder_chain_op_q[i];
-    //     barrett_adder_chain += barrett_adder_chain_op_m[i];
-
-    // end
+    assign constant_5039_mult_operand = (operator_i == MD_OP_KYBER_COMPRESS) ? op_a_i[23:0] : imd_val_q_i[0][23:0];
+    // assign constant_5039_mult_result = imd_val_q_i[0][23:0] * 13'd5039;
+    // assign constant_5039_mult_result = (alu_adder_i[25:0] << 10) - (imd_val_q_i[0][23:0] << 6) - (imd_val_q_i[0][23:0] << 4) - (imd_val_q_i[0][23:0]);
+    assign constant_5039_mult_result = (alu_adder_i[25:0] << 10) - (constant_5039_mult_operand << 6) - (constant_5039_mult_operand << 4) - (constant_5039_mult_operand);  // TODO: Ranges
 
     ///
     // Kyber Compress logic
     ///
 
-    logic[31:0] alu_adder_compress_shifted;
+    // logic[31:0] alu_adder_compress_shifted;
+    logic[12:0] alu_adder_compress_shifted;
     logic compress_carry_in;
 
     always_comb begin
 
       unique case (kyber_compress_bits_i)
 
-        4:       alu_adder_compress_shifted = alu_adder_i >> (24 - 4 - 1);
-        5:       alu_adder_compress_shifted = alu_adder_i >> (24 - 5 - 1);
-        6:       alu_adder_compress_shifted = alu_adder_i >> (24 - 10 - 1);
-        7:       alu_adder_compress_shifted = alu_adder_i >> (24 - 11 - 1);
-        default: alu_adder_compress_shifted = alu_adder_i >> (24 - 1 - 1);
+        4'd4:    alu_adder_compress_shifted = alu_adder_i[23:0] >> (24 - 4 - 1);
+        4'd5:    alu_adder_compress_shifted = alu_adder_i[23:0] >> (24 - 5 - 1);
+        4'd10:   alu_adder_compress_shifted = alu_adder_i[23:0] >> (24 - 10 - 1);
+        4'd11:   alu_adder_compress_shifted = alu_adder_i[23:0] >> (24 - 11 - 1);
+        default: alu_adder_compress_shifted = alu_adder_i[23:0] >> (24 - 1 - 1);
 
-      end case
+      endcase
 
     end
 
@@ -356,17 +341,19 @@ module ibex_multdiv_fast #(
     logic[11:0] adjust_result_high;
     logic adjust_result_high_mux_sel;  // 0 for passthrough from ALU adder, 1 for "adjust_adder_high"
 
-    logic[12:0] adjust_adder_low, adjust_adder_low_op_a, adjust_adder_low_op_b;
+    logic[12:0] adjust_adder_low_op_a, adjust_adder_low_op_b;
+    logic[13:0] adjust_adder_low;
     logic adjust_adder_low_carry_in;
+    logic[11:0] adjust_result_low_mask;
     logic[11:0] adjust_result_low;
     logic adjust_result_low_mux_sel;  // 0 for passthrough from ALU adder, 1 for "adjust_adder_low"
 
     // Conditionally subtract Q = 3329 from ALU output when performing modular addition or last step of Barrett reduction in modular multiplication
     // Subtraction is performed by adding the two's complement of 3329 (op_a + (op_b = !13'd3329) + (carry_in = 1'b1))
-    assign adjust_adder_op_b_inv = (alu_operator_i == ALU_KYBER_ADD || operator_i == MD_OP_MUL_MOD_3329);
+    assign adjust_adder_op_b_inv = (alu_operator_i == ALU_KYBER_ADD || operator_i == MD_OP_KYBER_MUL);
 
-    assign adjust_adder_high_op_a = alu_adder_i[28:16];
-    assign adjust_adder_high_op_b = adjust_adder_op_b_inv ? !(13'd3329): 13'd3329;
+    assign adjust_adder_high_op_a = (alu_operator_i inside {ALU_KYBER_CBD2, ALU_KYBER_CBD3}) ? {{10{alu_cbd_high_i[2]}}, alu_cbd_high_i} : alu_adder_i[28:16];
+    assign adjust_adder_high_op_b = adjust_adder_op_b_inv ? (13'd3329 ^ {13{1'b1}}) : 13'd3329;
     assign adjust_adder_high_carry_in = adjust_adder_op_b_inv;
     assign adjust_adder_high = adjust_adder_high_op_a + adjust_adder_high_op_b + adjust_adder_high_carry_in;
 
@@ -379,19 +366,44 @@ module ibex_multdiv_fast #(
       unique case (1'b1)
         // (alu_operator_i == ALU_KYBER_ADD):  adjust_result_high_mux_sel = alu_adder_i[28] | !adjust_adder_high[12];
         (alu_operator_i == ALU_KYBER_ADD):  adjust_result_high_mux_sel = !adjust_adder_high[12];
-        (alu_operator_i == ALU_KYBER_SUB):  adjust_result_high_mux_sel = adjust_adder_high[12];
-        (alu_operator_i == ALU_KYBER_CBD3): adjust_result_high_mux_sel = adjust_adder_high[12];
-        (alu_operator_i == ALU_KYBER_CBD2): adjust_result_high_mux_sel = adjust_adder_high[12];
+        // (alu_operator_i == ALU_KYBER_SUB):  adjust_result_high_mux_sel = adjust_adder_high[12];
+        (alu_operator_i == ALU_KYBER_SUB):  adjust_result_high_mux_sel = !alu_adder_i[28];
+        // (alu_operator_i == ALU_KYBER_CBD2): adjust_result_high_mux_sel = adjust_adder_high[12];
+        (alu_operator_i == ALU_KYBER_CBD2): adjust_result_high_mux_sel = alu_cbd_high_i[2];
+        // (alu_operator_i == ALU_KYBER_CBD3): adjust_result_high_mux_sel = adjust_adder_high[12];
+        (alu_operator_i == ALU_KYBER_CBD3): adjust_result_high_mux_sel = alu_cbd_high_i[2];
         default:                            adjust_result_high_mux_sel = 1'b0;
+
+      endcase
 
     end
 
     assign adjust_result_high = adjust_result_high_mux_sel ? adjust_adder_high[11:0] : adjust_adder_high_op_a[11:0];
 
-    assign adjust_adder_low_op_a = (operator_i = MD_OP_KYBER_COMPRESS) ? {2'b00, alu_adder_compress_shifted[12:1]} : alu_adder_i[12:0];
-    assign adjust_adder_low_op_b = (operator_i = MD_OP_KYBER_COMPRESS) ? 13'd0 : (adjust_adder_op_b_inv ? !(13'd3329): 13'd3329);
-    assign adjust_adder_low_carry_in = (operator_i = MD_OP_KYBER_COMPRESS) ? compress_carry_in : adjust_adder_op_b_inv;
-    assign adjust_adder_low = adjust_adder_low_op_a + adjust_adder_low_op_b + adjust_adder_low_carry_in;
+    // TODO: This mask may not be needed for compress_d != 1;
+    always_comb begin
+
+      unique case (kyber_compress_bits_i)
+
+        1: adjust_result_low_mask = 13'h001;
+        4: adjust_result_low_mask = 13'h00F;
+        5: adjust_result_low_mask = 13'h01F;
+        10: adjust_result_low_mask = 13'h3FF;
+        11: adjust_result_low_mask = 13'h7FF;
+        default: adjust_result_low_mask = 13'hFFF;
+
+      endcase
+
+    end
+
+    assign adjust_adder_low_op_a = (operator_i == MD_OP_KYBER_COMPRESS)                    ? {2'b00, alu_adder_compress_shifted[12:1]} :
+                                   (alu_operator_i inside {ALU_KYBER_CBD2, ALU_KYBER_CBD3} ? {{10{alu_cbd_low_i[2]}}, alu_cbd_low_i} :
+                                                                                             alu_adder_i[12:0]);
+
+    // assign adjust_adder_low_op_b = (operator_i == MD_OP_KYBER_COMPRESS) ? 13'd0 : (adjust_adder_op_b_inv ? !(13'd3329): 13'd3329);
+    assign adjust_adder_low_op_b = (operator_i == MD_OP_KYBER_COMPRESS) ? 13'd0 : (adjust_adder_op_b_inv ? (13'd3329 ^ {13{1'b1}}): 13'd3329);
+    assign adjust_adder_low_carry_in = (operator_i == MD_OP_KYBER_COMPRESS) ? compress_carry_in : adjust_adder_op_b_inv;
+    assign adjust_adder_low = (adjust_adder_low_op_a + adjust_adder_low_op_b + adjust_adder_low_carry_in);
 
     // Select "adjust_adder" when:
     //  ALU subtraction underflows (meaning addition to 3329 brings result back to [0, 3328] range)
@@ -404,16 +416,21 @@ module ibex_multdiv_fast #(
       unique case (1'b1)
         // (alu_operator_i == ALU_KYBER_ADD):    adjust_result_low_mux_sel = alu_adder_i[12] | !adjust_adder_low[12];
         (alu_operator_i == ALU_KYBER_ADD):    adjust_result_low_mux_sel = !adjust_adder_low[12];
-        (alu_operator_i == ALU_KYBER_SUB):    adjust_result_low_mux_sel = adjust_adder_low[12];
-        (alu_operator_i == ALU_KYBER_CBD3):   adjust_result_low_mux_sel = adjust_adder_low[12];
-        (alu_operator_i == ALU_KYBER_CBD2):   adjust_result_low_mux_sel = adjust_adder_low[12];
-        (operator_i == MD_OP_MUL_MOD_3329):   adjust_result_low_mux_sel = !adjust_adder_low[12];
+        // (alu_operator_i == ALU_KYBER_SUB):    adjust_result_low_mux_sel = adjust_adder_low[12];
+        (alu_operator_i == ALU_KYBER_SUB):    adjust_result_low_mux_sel = !alu_adder_i[12];
+        // (alu_operator_i == ALU_KYBER_CBD2):   adjust_result_low_mux_sel = adjust_adder_low[12];
+        (alu_operator_i == ALU_KYBER_CBD2):   adjust_result_low_mux_sel = alu_cbd_low_i[2];
+        // (alu_operator_i == ALU_KYBER_CBD3):   adjust_result_low_mux_sel = adjust_adder_low[12];
+        (alu_operator_i == ALU_KYBER_CBD3):   adjust_result_low_mux_sel = alu_cbd_low_i[2];
+        (operator_i == MD_OP_KYBER_MUL):      adjust_result_low_mux_sel = !adjust_adder_low[12];
         (operator_i == MD_OP_KYBER_COMPRESS): adjust_result_low_mux_sel = 1'b1;
         default:                              adjust_result_low_mux_sel = 1'b0;
 
+      endcase
+
     end
 
-    assign adjust_result_low = adjust_result_low_mux_sel ? adjust_adder_low[11:0] : adjust_adder_low_op_a[11:0];
+    assign adjust_result_low = (adjust_result_low_mux_sel ? adjust_adder_low[11:0] : adjust_adder_low_op_a[11:0]) & adjust_result_low_mask;
 
     always_comb begin
       mult_op_a                  = op_a_i[`OP_L];
@@ -425,8 +442,11 @@ module ibex_multdiv_fast #(
       mult_state_d               = mult_state_q;
       mult_valid                 = 1'b0;
       mult_hold                  = 1'b0;
+
       barrett_imd_we             = 2'b00;
-      barrett_adder_chain_sel    = MULT_M;
+
+      alu_operand_a_kyber = {imd_val_q_i[0] << 2, 1'b0};
+      alu_operand_b_kyber = {imd_val_q_i[0], 1'b0};
 
       unique case (mult_state_q)
 
@@ -439,23 +459,30 @@ module ibex_multdiv_fast #(
           accum     = '0;
           mac_res_d = mac_res;
 
-          if (operator_i == MD_OP_MUL_MOD_3329) begin
+          if (operator_i == MD_OP_KYBER_MUL) begin
             barrett_imd_we = 2'b01;
-            mult_state_d = BARRETT_MULT_M;
+            mult_state_d = KYBER_BARRETT_MULT_M;
 
           end else if (operator_i == MD_OP_KYBER_COMPRESS) begin
 
             // a << 12 + a << 10 (shift by 10 in barret_adder_chain last operand (from ALU output))
-            alu_operand_a_kyber = {imd_val_q_i[0] << 2, 1'b0};
-            alu_operand_b_kyber = {imd_val_q_i[0], 1'b0};
+            alu_operand_a_kyber = {{6{1'b0}}, op_a_i[23:0] << 2, 1'b0};
+            alu_operand_b_kyber = {{8{1'b0}}, op_a_i[24:0], 1'b0};
 
             mult_op_a = op_a_i[`OP_L];
             mult_op_b = 16'hB760;  // Fractional part of 2**24/q, 12 bits of precision
 
-            barrett_adder_chain_sel = MULT_M;
-            mac_res_d = barrett_adder_chain;
+            // mac_res_d = barrett_adder_chain;
+            barrett_imd_d = constant_5039_mult_result[33:0];
             barrett_imd_we = 2'b11;
-            mult_state_d = COMPRESS;
+            mult_state_d = KYBER_COMPRESS;
+
+          end else if (alu_operator_i inside {ALU_KYBER_ADD, ALU_KYBER_SUB, ALU_KYBER_CBD2, ALU_KYBER_CBD3}) begin
+
+            mac_res_d = {4'b0000, adjust_result_high[11:0], 4'b0000, adjust_result_low[11:0]};
+
+            mult_valid = 1'b1;
+            mult_state_d = ALBL;
 
           end else begin
             mult_state_d = ALBH;
@@ -519,14 +546,14 @@ module ibex_multdiv_fast #(
           mult_hold    = ~multdiv_ready_id_i;
         end
 
-        BARRETT_MULT_M: begin
+        KYBER_BARRETT_MULT_M: begin
 
           // a << 12 + a << 10 (shift by 10 in barret_adder_chain last operand (from ALU output))
           alu_operand_a_kyber = {imd_val_q_i[0] << 2, 1'b0};
           alu_operand_b_kyber = {imd_val_q_i[0], 1'b0};
 
           // mac_res_d = barrett_adder_chain >> 24;
-          mac_res_d = constant_5039_mult >> 24;
+          barrett_imd_d = (constant_5039_mult_result >> 24);
           barrett_imd_we = 2'b10;
 
           // Note no state transition will occur if mult_hold is set
@@ -534,37 +561,39 @@ module ibex_multdiv_fast #(
             mult_valid = 1'b1;
             mult_state_d = ALBL;
           end else
-            mult_state_d = BARRETT_MULT_Q;
+            mult_state_d = KYBER_BARRETT_MULT_Q;
 
           mult_hold    = ~multdiv_ready_id_i;
         end
 
-        BARRETT_MULT_Q: begin
+        KYBER_BARRETT_MULT_Q: begin
 
           // alu_operand_a_kyber = {imd_val_q_i[1], 1'b0};
           // alu_operand_b_kyber = {imd_val_q_i[1] << 1, 1'b0};
-          mult_op_a = imd_val_q_i[0];
-          mult_op_b = 16'3329;
+          // mult_op_a = imd_val_q_i[0];
+          mult_op_a = imd_val_q_i[1][15:0];
+          mult_op_b = 16'd3329;
 
           accum = '0;
           // mac_res_d = barrett_adder_chain;
-          mac_res_d = mac_res;
+          // mac_res_d = mac_res;
+          barrett_imd_d = mac_res;
           barrett_imd_we = 2'b10;
 
           // Note no state transition will occur if mult_hold is set
-          mult_state_d = BARRET_SUB_ADJUST;
+          mult_state_d = KYBER_BARRETT_SUB_ADJUST;
           mult_hold    = ~multdiv_ready_id_i;
 
         end
 
-        BARRETT_SUB_ADJUST: begin
+        KYBER_BARRETT_SUB_ADJUST: begin
 
           // alu_operand_a_kyber = {imd_val_q_i[0], 1'b0};
-          alu_operand_a_kyber = {imd_val_q_i[0], 1'b1};
-          alu_operand_b_kyber = {!imd_val_q_i[1], 1'b1};
+          alu_operand_a_kyber = {imd_val_q_i[0][31:0], 1'b1};
+          alu_operand_b_kyber = {{imd_val_q_i[1][31:0] ^ {32{1'b1}}}, 1'b1};
 
           // mac_res_d  = barrett_adjust;
-          mac_res_d  = {4{1'b0}, adjust_result_high, 4{1'b0}, adjust_result_low};
+          mac_res_d  = {{4{1'b0}}, adjust_result_high, {4{1'b0}}, adjust_result_low};
           mult_valid = 1'b1;
 
           // Note no state transition will occur if mult_hold is set
@@ -576,13 +605,13 @@ module ibex_multdiv_fast #(
         KYBER_COMPRESS: begin
 
           // Sum 16 higher bits of ibex_mult with result of constant 5039 multiplication
-          alu_operand_a_kyber = {16{1'b0}, imd_val_q_i[0][31:16], 1'b0};
+          alu_operand_a_kyber = {{16{1'b0}}, imd_val_q_i[0][31:16], 1'b0};
           alu_operand_b_kyber = {imd_val_q_i[1], 1'b1};
 
           // Right shift by 24 - d ALU output
           // Add 1 to shifted ALU output if 0.5 bit is set (rounds to nearest integer)
 
-          mac_res_d  = {20{1'b0}, adjust_result_low};
+          mac_res_d  = {{20{1'b0}}, adjust_result_low};
           mult_valid = 1'b1;
 
           // Note no state transition will occur if mult_hold is set

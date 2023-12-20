@@ -102,7 +102,7 @@ module ibex_decoder #(
   // jump/branches
   output logic                 jump_in_dec_o,         // jump is being calculated in ALU
   output logic                 branch_in_dec_o
-  
+
 );
 
   import ibex_pkg::*;
@@ -227,7 +227,7 @@ module ibex_decoder #(
     csr_access_o          = 1'b0;
     csr_illegal           = 1'b0;
     csr_op                = CSR_OP_READ;
-    
+
     // CRYPTO EXTENSIONS
     sha2_en_o             = 1'b0;
     sha2_op_o             = SIG0;
@@ -411,7 +411,7 @@ module ibex_decoder #(
               5'b00010: begin  // CRYPTO EXTENSIONS (SHA256)
 
                 sha2_en_o = (instr[26:22] == 5'b00000);
-        
+
                 unique case (instr[26:20])
                   7'b000_0010: sha2_op_o = SIG0;                                       // sha256sig0
                   7'b000_0011: sha2_op_o = SIG1;                                       // sha256sig1
@@ -481,14 +481,14 @@ module ibex_decoder #(
 
         if ({instr[26], instr[13:12]} == {1'b1, 2'b01}) begin
           illegal_insn = (RV32B != RV32BNone) ? 1'b0 : 1'b1; // cmix / cmov / fsl / fsr
-        
+
         // CRYPTO EXTENSIONS (SHA512 instructions)
         end else if ({instr[31:28], instr[14:12]} == {4'b0101, 3'b000}) begin
 
           sha2_en_o = 1'b1;
 
           unique case (instr[27:25])
-          
+
             3'b110: sha2_op_o = SIG0H;  // sha512sig0h
             3'b010: sha2_op_o = SIG0L;  // sha512sig0l
             3'b111: sha2_op_o = SIG1H;  // sha512sig1h
@@ -497,10 +497,10 @@ module ibex_decoder #(
             3'b001: sha2_op_o = SUM1R;  // sha512sum1r
 
           endcase
-          
+
         // CRYPTO EXTENSIONS (AES instructions)
         end else if ({instr[29:25], instr[14:12]} =?= {5'b100?1, 3'b000}) begin  // aes32esmi or aes32esi
-        
+
           aes_en_o = 1'b1;
           aes_mix_o = instr[26];  // Do partial MixCollumns if aes32esmi
           aes_bs_o = instr[31:30];
@@ -691,6 +691,33 @@ module ibex_decoder #(
         end
 
       end
+
+      7'b0101011: begin
+
+        if (instr[14:12] == 3'd6) begin // CRYPTO EXTENSIONS (KYBER)
+
+          if (instr[31:25] inside {[7'd0:7'd4]}) begin
+
+            rf_ren_a_o = 1'b1;
+            // rf_ren_b_o = (instr[31:25] inside {[7'd0:7'd2]});
+            rf_ren_b_o = instr[31:25] != 7'd4;
+            rf_we      = 1'b1;
+
+            unique case (instr[31:25])
+              7'd2:    multdiv_operator_o = MD_OP_KYBER_MUL;
+              7'd3:    multdiv_operator_o = MD_OP_KYBER_COMPRESS;
+              default: multdiv_operator_o = MD_OP_MULL;
+            endcase
+
+          end else begin
+            illegal_insn = 1'b1;
+          end
+
+        end else begin
+          illegal_insn = 1'b1;
+        end
+      end
+
       default: begin
         illegal_insn = 1'b1;
       end
@@ -1234,6 +1261,32 @@ module ibex_decoder #(
         end
 
       end
+
+      7'b0101011: begin
+
+        alu_op_a_mux_sel_o = OP_A_REG_A;
+        // alu_op_b_mux_sel_o = (instr[14:12] == 3'd4) ? OP_B_IMM : OP_B_REG_B;
+        alu_op_b_mux_sel_o = instr[31:25] == 7'd4 ? OP_B_IMM : OP_B_REG_B;
+
+        mult_sel_o = 1'b1;
+
+        unique case (instr_alu[31:25])
+
+          7'd0: alu_operator_o = ALU_KYBER_ADD;
+          7'd1: alu_operator_o = ALU_KYBER_SUB;
+          7'd2: alu_operator_o = ALU_ADD;
+          7'd3: alu_operator_o = ALU_ADD;
+          7'd4: alu_operator_o = (instr[24:20] == 5'd3) ? ALU_KYBER_CBD3 : ALU_KYBER_CBD2;
+          // 7'd4: alu_operator_o = ALU_KYBER_CBD3;
+          default: alu_operator_o = ALU_SLTU;
+
+        endcase
+
+        // end else 
+        //   alu_operator = ALU_ADD;
+
+      end
+
       default: ;
     endcase
   end

@@ -195,7 +195,7 @@ package ibex_pkg;
     MD_OP_MULH,
     MD_OP_DIV,
     MD_OP_REM,
-    MD_OP_MUL_MOD_3329,
+    MD_OP_KYBER_MUL,
     MD_OP_KYBER_COMPRESS
   } md_op_e;
 
