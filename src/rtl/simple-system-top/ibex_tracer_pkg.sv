@@ -355,6 +355,13 @@ package ibex_tracer_pkg;
   parameter logic [31:0] INSN_ASCONSIGMA2L = { 7'b0000010, 10'h?, 3'b111, 5'h?, 7'b0101011 };
   parameter logic [31:0] INSN_ASCONSIGMA3L = { 7'b0000011, 10'h?, 3'b111, 5'h?, 7'b0101011 };
   parameter logic [31:0] INSN_ASCONSIGMA4L = { 7'b0000100, 10'h?, 3'b111, 5'h?, 7'b0101011 };
+  
+  parameter logic [31:0] INSN_KYBERADD =        { 7'b0000000, 10'h?, 3'b110, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_KYBERSUB =        { 7'b0000001, 10'h?, 3'b110, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_KYBERMUL =        { 7'b0000010, 10'h?, 3'b110, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_KYBERCOMPRESS =   { 7'b0000011, 10'h?, 3'b110, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_KYBER_CBD2 =      { 7'b0000100, 5'd2, 5'h?, 3'b110, 5'h?, 7'b0101011 };
+  parameter logic [31:0] INSN_KYBER_CBD3 =      { 7'b0000100, 5'd3, 5'h?, 3'b110, 5'h?, 7'b0101011 };
     
   parameter logic [31:0] INSN_AES32ESI    = { 2'h?, 5'b10001, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };
   parameter logic [31:0] INSN_AES32ESMI   = { 2'h?, 5'b10011, 10'h?, 3'b000, 5'h?, {OPCODE_OP} };

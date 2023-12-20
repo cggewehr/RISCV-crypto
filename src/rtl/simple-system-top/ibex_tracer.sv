@@ -1093,6 +1093,13 @@ module ibex_tracer (
         INSN_SHA512SIG1L: decode_r_insn("sha512siglh");
         INSN_SHA512SUM0R: decode_r_insn("sha512sum0r");
         INSN_SHA512SUM1R: decode_r_insn("sha512sum1r");
+
+        INSN_KYBERADD: decode_r_insn("kyberadd");
+        INSN_KYBERSUB: decode_r_insn("kybersub");  
+        INSN_KYBERMUL: decode_r_insn("kybermul");  
+        INSN_KYBERCOMPRESS: decode_r_insn("kybercompress");
+        INSN_KYBER_CBD2: decode_i_insn("kybercbd2");
+        INSN_KYBER_CBD3: decode_i_insn("kybercbd3");
     
         INSN_AES32ESI: decode_aes_insn("aes32esi");
         INSN_AES32ESMI: decode_aes_insn("aes32esmi");
