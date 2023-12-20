@@ -1,13 +1,3 @@
-# SimVision Command Script (Tue Sep 27 09:09:57 -03 2022)
-#
-# Version 19.03.s013
-#
-# You can restore this configuration with:
-#
-#      ncsim -logfile log/ncsim.log -errormax 15 worklib.tb_top -input restore.tcl
-#
-
-
 #
 # Preferences
 #
@@ -27,13 +17,6 @@ preferences set toolbar-Search-Console {
 preferences set plugin-enable-groupscope 0
 preferences set plugin-enable-interleaveandcompare 0
 preferences set plugin-enable-waveformfrequencyplot 0
-
-#
-# Simulator
-#
-database require simulator -hints {
-	simulator "ncsim -logfile log/ncsim.log -errormax 15 worklib.tb_top -gui -input restore.tcl"
-}
 #
 # Groups
 #
@@ -62,24 +45,23 @@ mmap new  -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor or
 #
 # Design Browser windows
 #
-if {[catch {window new WatchList -name "Design Browser 1" -geometry 1146x741+555+125}] != ""} {
-    window geometry "Design Browser 1" 1146x741+555+125
+if {[catch {window new WatchList -name "Design Browser 1" -geometry 1146x741+2055+247}] != ""} {
+    window geometry "Design Browser 1" 1146x741+2055+247
 }
 window target "Design Browser 1" on
 browser using {Design Browser 1}
-browser set -scope [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i}]} ]
+browser set -scope [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i}]} ]
 browser set \
     -showassertions 0 \
-    -showinternals 0 \
     -signalsort name
-browser yview see [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.load_store_unit_i}]} ]
+browser yview see [subst  {[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i}]} ]
 browser timecontrol set -lock 0
 
 #
 # Waveform windows
 #
-if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1920x1017+0+23}] != ""} {
-    window geometry "Waveform 1" 1920x1017+0+23
+if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1850x1016+0+23}] != ""} {
+    window geometry "Waveform 1" 1850x1016+0+23
 }
 window target "Waveform 1" on
 waveform using {Waveform 1}
@@ -207,9 +189,82 @@ set id [waveform add -signals [subst  {
 set id [waveform add -signals [subst  {
 	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mhpmcounter[0:31]}]}
 	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_low_op_a[12:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_low_op_b[12:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_low_carry_in}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_low[13:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_op_b_inv}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_result_low[11:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_result_low_mask[11:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_result_low_mux_sel}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_high_op_a[12:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_high_op_b[12:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_high_carry_in}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_adder_high[12:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_result_high[11:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.adjust_result_high_mux_sel}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.alu_adder_compress_shifted[12:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.kyber_compress_bits_i[3:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.compress_carry_in}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.operator_i[2:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.constant_5039_mult_result[36:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.mult_op_a[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.mult_op_b[15:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.mult_state_q[2:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.multdiv_result_o[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.ex_block_i.gen_multdiv_fast.multdiv_i.gen_mult_fast.constant_5039_mult_operand[23:0]}]}
+	} ]]
 
-waveform xview limits 0 420592ns
-waveform delta load {-item cursor -value 165,980ns}
+waveform xview limits 30558.348ns 30574.368ns
+waveform delta load {-item cursor -value 30,566.36ns}
 
 #
 # Waveform Window Links
@@ -219,7 +274,7 @@ waveform delta load {-item cursor -value 165,980ns}
 # Console windows
 #
 console set -windowname Console
-window geometry Console 730x250+261+564
+window geometry Console 759x276+261+564
 
 #
 # Layout selection
