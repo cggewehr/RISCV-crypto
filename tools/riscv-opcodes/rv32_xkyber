@@ -1,0 +1,6 @@
+kyberadd        rd rs1 rs2      31..25=0          14..12=6 6..0=0x2B
+kybersub        rd rs1 rs2      31..25=1          14..12=6 6..0=0x2B
+kybermul        rd rs1 rs2      31..25=2          14..12=6 6..0=0x2B
+kybercompress   rd rs1 rs2      31..25=3          14..12=6 6..0=0x2B
+kybercbd2       rd rs1          31..25=4 24..20=2 14..12=6 6..0=0x2B
+kybercbd3       rd rs1          31..25=4 24..20=3 14..12=6 6..0=0x2B
