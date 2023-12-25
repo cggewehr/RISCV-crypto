@@ -22,9 +22,28 @@ void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], polyvec *a)
   uint16_t t[8];
   for(i=0;i<KYBER_K;i++) {
     for(j=0;j<KYBER_N/8;j++) {
-      for(k=0;k<8;k++)
+      for(k=0;k<8;k++) {
+
+        #ifdef KYBER_ISE
+
+        int asm_val;
+        __asm__("kybercompress %0, %1, %2" :  "=r"(asm_val) : "r"((uint32_t)a->vec[i].coeffs[8*j+k]), "r"(11));
+
+        #ifdef KYBER_ISE_DEBUG
+        int ref_val = ((((uint32_t)a->vec[i].coeffs[8*j+k] << 11) + KYBER_Q/2) / KYBER_Q) & 0x7ff;
+
+        if (rvkat_chku32("kybercompress 11", ref_val, asm_val))
+          __asm__ volatile ("ebreak");
+        #endif
+
+        t[k] = asm_val;
+
+        #else
         t[k] = ((((uint32_t)a->vec[i].coeffs[8*j+k] << 11) + KYBER_Q/2)
                 /KYBER_Q) & 0x7ff;
+        #endif
+
+      }
 
       r[ 0] = (t[0] >>  0);
       r[ 1] = (t[0] >>  8) | (t[1] << 3);
@@ -44,9 +63,28 @@ void polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], polyvec *a)
   uint16_t t[4];
   for(i=0;i<KYBER_K;i++) {
     for(j=0;j<KYBER_N/4;j++) {
-      for(k=0;k<4;k++)
+      for(k=0;k<4;k++) {
+
+        #ifdef KYBER_ISE
+
+        int asm_val;
+        __asm__("kybercompress %0, %1, %2" :  "=r"(asm_val) : "r"((uint32_t)a->vec[i].coeffs[4*j+k]), "r"(10));
+
+        #ifdef KYBER_ISE_DEBUG
+        int ref_val = ((((uint32_t)a->vec[i].coeffs[4*j+k] << 10) + KYBER_Q/2) / KYBER_Q) & 0x3ff;
+
+        if (rvkat_chku32("kybercompress 10", ref_val, asm_val))
+          __asm__ volatile ("ebreak");
+        #endif
+
+        t[k] = asm_val;
+
+        #else
         t[k] = ((((uint32_t)a->vec[i].coeffs[4*j+k] << 10) + KYBER_Q/2)
                 / KYBER_Q) & 0x3ff;
+        #endif
+
+      }
 
       r[0] = (t[0] >> 0);
       r[1] = (t[0] >> 8) | (t[1] << 2);
@@ -195,6 +233,13 @@ void polyvec_pointwise_acc_montgomery(poly *r,
   poly_basemul_montgomery(r, &a->vec[0], &b->vec[0]);
   for(i=1;i<KYBER_K;i++) {
     poly_basemul_montgomery(&t, &a->vec[i], &b->vec[i]);
+
+    // FIXME
+    #ifdef KYBER_ISE
+      poly_reduce(r);
+      poly_reduce(&t);
+    #endif
+
     poly_add(r, r, &t);
   }
 
@@ -212,9 +257,16 @@ void polyvec_pointwise_acc_montgomery(poly *r,
 **************************************************/
 void polyvec_reduce(polyvec *r)
 {
+
+  #ifdef KYBER_ISE
+  return;
+  #else
+
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_reduce(&r->vec[i]);
+
+  #endif
 }
 
 /*************************************************
@@ -229,9 +281,16 @@ void polyvec_reduce(polyvec *r)
 **************************************************/
 void polyvec_csubq(polyvec *r)
 {
+
+  #ifdef KYBER_ISE
+  return;
+  #else
+
   unsigned int i;
   for(i=0;i<KYBER_K;i++)
     poly_csubq(&r->vec[i]);
+
+  #endif
 }
 
 /*************************************************

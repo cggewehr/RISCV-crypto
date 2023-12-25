@@ -10,6 +10,8 @@ SHA256_ASM ?= 0
 SHA512_ASM ?= 0
 AES_ASM ?= 0
 ASCON_ISE ?= 0
+KYBER_ISE ?= 0
+SET_CUSTOM_BINUTILS?=0
 
 ifneq (${SHA256_ASM}, 0)
 	DEFS += -DSHA256_RISCV_ASM
@@ -25,6 +27,18 @@ endif
 
 ifneq (${ASCON_ISE}, 0)
 	DEFS += -DASCON_ISE
+	SET_CUSTOM_BINUTILS := 1
+endif
+
+ifneq (${KYBER_ISE}, 0)
+	DEFS += -DKYBER_ISE
+	SET_CUSTOM_BINUTILS := 1
+endif
+
+ifneq (${SET_CUSTOM_BINUTILS}, 0)
+	DEFS += -B/home/${USER}/riscv-gnu-toolchain/bin/riscv64-unknown-linux-gnu-
+	OBJDUMP := /home/${USER}/riscv-gnu-toolchain/bin/riscv64-unknown-linux-gnu-objdump
+	OBJCOPY := /home/${USER}/riscv-gnu-toolchain/bin/riscv64-unknown-linux-gnu-objcopy
 endif
 
 # TODO: If verbose flag print if ISE ASM will or not be used for each extension

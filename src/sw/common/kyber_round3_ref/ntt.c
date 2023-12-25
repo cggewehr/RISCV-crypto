@@ -39,6 +39,23 @@ void init_ntt() {
 
 */
 
+// Without Montgomery constant (for Kyber ISE)
+#ifdef KYBER_ISE
+const int16_t zetas[128] = {
+  1, 1729, 2580, 3289, 2642, 630, 1897, 848, 1062, 1919, 193, 797,
+  2786, 3260, 569, 1746, 296, 2447, 1339, 1476, 3046, 56, 2240, 1333,
+  1426, 2094, 535, 2882, 2393, 2879, 1974, 821, 289, 331, 3253, 1756,
+  1197, 2304, 2277, 2055, 650, 1977, 2513, 632, 2865, 33, 1320, 1915,
+  2319, 1435, 807, 452, 1438, 2868, 1534, 2402, 2647, 2617, 1481, 648,
+  2474, 3110, 1227, 910, 17, 2761, 583, 2649, 1637, 723, 2288, 1100,
+  1409, 2662, 3281, 233, 756, 2156, 3015, 3050, 1703, 1651, 2789, 1789,
+  1847, 952, 1461, 2687, 939, 2308, 2437, 2388, 733, 2337, 268, 641,
+  1584, 2298, 2037, 3220, 375, 2549, 2090, 1645, 1063, 319, 2773, 757,
+  2099, 561, 2466, 2594, 2804, 1092, 403, 1026, 1143, 2150, 2775, 886,
+  1722, 1212, 1874, 1029, 2110, 2935, 885, 2154
+};
+
+#else
 const int16_t zetas[128] = {
   2285, 2571, 2970, 1812, 1493, 1422, 287, 202, 3158, 622, 1577, 182, 962,
   2127, 1855, 1468, 573, 2004, 264, 383, 2500, 1458, 1727, 3199, 2648, 1017,
@@ -52,18 +69,21 @@ const int16_t zetas[128] = {
   478, 3221, 3021, 996, 991, 958, 1869, 1522, 1628
 };
 
-const int16_t zetas_inv[128] = {
-  1701, 1807, 1460, 2371, 2338, 2333, 308, 108, 2851, 870, 854, 1510, 2535,
-  1278, 1530, 1185, 1659, 1187, 3109, 874, 1335, 2111, 136, 1215, 2945, 1465,
-  1285, 2007, 2719, 2726, 2232, 2512, 75, 156, 3000, 2911, 2980, 872, 2685,
-  1590, 2210, 602, 1846, 777, 147, 2170, 2551, 246, 1676, 1755, 460, 291, 235,
-  3152, 2742, 2907, 3224, 1779, 2458, 1251, 2486, 2774, 2899, 1103, 1275, 2652,
-  1065, 2881, 725, 1508, 2368, 398, 951, 247, 1421, 3222, 2499, 271, 90, 853,
-  1860, 3203, 1162, 1618, 666, 320, 8, 2813, 1544, 282, 1838, 1293, 2314, 552,
-  2677, 2106, 1571, 205, 2918, 1542, 2721, 2597, 2312, 681, 130, 1602, 1871,
-  829, 2946, 3065, 1325, 2756, 1861, 1474, 1202, 2367, 3147, 1752, 2707, 171,
-  3127, 3042, 1907, 1836, 1517, 359, 758, 1441
-};
+#endif
+
+// Not needed anymore, new INTT from pq-crystals github repo reuses same zetas as forward NTT
+// const int16_t zetas_inv[128] = {
+//   1701, 1807, 1460, 2371, 2338, 2333, 308, 108, 2851, 870, 854, 1510, 2535,
+//   1278, 1530, 1185, 1659, 1187, 3109, 874, 1335, 2111, 136, 1215, 2945, 1465,
+//   1285, 2007, 2719, 2726, 2232, 2512, 75, 156, 3000, 2911, 2980, 872, 2685,
+//   1590, 2210, 602, 1846, 777, 147, 2170, 2551, 246, 1676, 1755, 460, 291, 235,
+//   3152, 2742, 2907, 3224, 1779, 2458, 1251, 2486, 2774, 2899, 1103, 1275, 2652,
+//   1065, 2881, 725, 1508, 2368, 398, 951, 247, 1421, 3222, 2499, 271, 90, 853,
+//   1860, 3203, 1162, 1618, 666, 320, 8, 2813, 1544, 282, 1838, 1293, 2314, 552,
+//   2677, 2106, 1571, 205, 2918, 1542, 2721, 2597, 2312, 681, 130, 1602, 1871,
+//   829, 2946, 3065, 1325, 2756, 1861, 1474, 1202, 2367, 3147, 1752, 2707, 171,
+//   3127, 3042, 1907, 1836, 1517, 359, 758, 1441
+// };
 
 /*************************************************
 * Name:        fqmul
@@ -76,7 +96,32 @@ const int16_t zetas_inv[128] = {
 * Returns 16-bit integer congruent to a*b*R^{-1} mod q
 **************************************************/
 static int16_t fqmul(int16_t a, int16_t b) {
+
+  #ifdef KYBER_ISE
+  int16_t asm_val;
+  __asm__("kybermul %0, %1, %2" :  "=r"(asm_val) : "r"(a), "r"(b));
+
+  #ifdef KYBER_ISE_DEBUG
+
+  puts("kybermul a = ");
+  puthex(a);
+  puts(" | ");
+  puts("kybermul b = ");
+  puthex(b);
+  puts("\n");
+
+  int ref_val = (a * b) % KYBER_Q;
+
+  if (rvkat_chku32("kybermul", ref_val, asm_val))
+    __asm__("ebreak");
+  #endif
+
+  return asm_val;
+
+  #else
   return montgomery_reduce((int32_t)a*b);
+  #endif
+
 }
 
 /*************************************************
@@ -93,14 +138,22 @@ void ntt(int16_t r[256]) {
   int16_t t, zeta;
 
   k = 1;
-  for(len = 128; len >= 2; len >>= 1) {
-    for(start = 0; start < 256; start = j + len) {
+  for (len = 128; len >= 2; len >>= 1) {
+    for (start = 0; start < 256; start = j + len) {
       zeta = zetas[k++];
-      for(j = start; j < start + len; ++j) {
+      for (j = start; j < start + len; ++j) {
+
         t = fqmul(zeta, r[j + len]);
+
+        #ifdef KYBER_ISE
+        __asm__("kybersub %0, %1, %2" :  "=r"(r[j+len]) : "r"(r[j]), "r"(t));
+        __asm__("kyberadd %0, %1, %2" :  "=r"(r[j]) : "r"(r[j]), "r"(t));
+        #else
         r[j + len] = r[j] - t;
         r[j] = r[j] + t;
+        #endif
       }
+
     }
   }
 }
@@ -115,25 +168,73 @@ void ntt(int16_t r[256]) {
 * Arguments:   - int16_t r[256]: pointer to input/output vector of elements
 *                                of Zq
 **************************************************/
+// void invntt(int16_t r[256]) {
+//   unsigned int start, len, j, k;
+//   int16_t t, zeta;
+
+//   k = 0;
+//   for(len = 2; len <= 128; len <<= 1) {
+//     for(start = 0; start < 256; start = j + len) {
+//       zeta = zetas_inv[k++];
+
+//       puts("k = ");
+//       puthex(k);
+//       puts("\n");
+
+//       if (zeta == zetas_inv[127])
+//         __asm__ volatile ("ebreak");
+
+//       for(j = start; j < start + len; ++j) {
+//         t = r[j];
+//         r[j] = barrett_reduce(t + r[j + len]);
+//         r[j + len] = t - r[j + len];
+//         r[j + len] = fqmul(zeta, r[j + len]);
+//       }
+//     }
+//   }
+
+//   for(j = 0; j < 256; ++j)
+//     r[j] = fqmul(r[j], zetas_inv[127]);
+// }
+
 void invntt(int16_t r[256]) {
   unsigned int start, len, j, k;
   int16_t t, zeta;
 
-  k = 0;
+  #ifdef KYBER_ISE
+  const int16_t f = 3303; // 1/128 scaling factor in Zq
+  #else
+  const int16_t f = 1441; // mont^2/128
+  #endif
+
+  k = 127;
   for(len = 2; len <= 128; len <<= 1) {
     for(start = 0; start < 256; start = j + len) {
-      zeta = zetas_inv[k++];
-      for(j = start; j < start + len; ++j) {
+      zeta = zetas[k--];
+      for(j = start; j < start + len; j++) {
+
+        #ifdef KYBER_ISE
+
+        t = r[j];
+        __asm__("kyberadd %0, %1, %2" :  "=r"(r[j]) : "r"(r[j + len]), "r"(t));
+        __asm__("kybersub %0, %1, %2" :  "=r"(r[j + len]) : "r"(r[j + len]), "r"(t));
+        r[j + len] = fqmul(zeta, r[j + len]);
+
+        #else
+
         t = r[j];
         r[j] = barrett_reduce(t + r[j + len]);
-        r[j + len] = t - r[j + len];
+        r[j + len] = r[j + len] - t;
         r[j + len] = fqmul(zeta, r[j + len]);
+
+        #endif
+
       }
     }
   }
 
-  for(j = 0; j < 256; ++j)
-    r[j] = fqmul(r[j], zetas_inv[127]);
+  for(j = 0; j < 256; j++)
+    r[j] = fqmul(r[j], f);
 }
 
 /*************************************************
@@ -154,8 +255,17 @@ void basemul(int16_t r[2],
 {
   r[0]  = fqmul(a[1], b[1]);
   r[0]  = fqmul(r[0], zeta);
+  #ifdef KYBER_ISE
+  __asm__("kyberadd %0, %1, %2" :  "=r"(r[0]) : "r"(r[0]), "r"(fqmul(a[0], b[0])));
+  #else
   r[0] += fqmul(a[0], b[0]);
+  #endif
 
   r[1]  = fqmul(a[0], b[1]);
+  #ifdef KYBER_ISE
+  __asm__("kyberadd %0, %1, %2" :  "=r"(r[1]) : "r"(r[1]), "r"(fqmul(a[1], b[0])));
+  #else
   r[1] += fqmul(a[1], b[0]);
+  #endif
+
 }

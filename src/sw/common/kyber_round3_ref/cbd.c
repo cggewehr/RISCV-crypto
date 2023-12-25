@@ -61,8 +61,49 @@ static void cbd2(poly *r, const uint8_t buf[2*KYBER_N/4])
   uint32_t t,d;
   int16_t a,b;
 
-  for(i=0;i<KYBER_N/8;i++) {
+  for (i=0;i<KYBER_N/8;i++) {
+
     t  = load32_littleendian(buf+4*i);
+
+    #ifdef KYBER_ISE
+
+    uint32_t* r_ptr = ((uint32_t *) r->coeffs);
+    uint32_t asm_val;
+
+    for (j = 0; j < 4; j++, t = t >> 8) {
+
+      __asm__("kybercbd2 %0, %1" :  "=r"(asm_val) : "r"(t));
+
+      #ifdef KYBER_ISE_DEBUG
+
+      int32_t ref_val, a_high, b_high, a_low, b_low, sample_high, sample_low;
+
+      b_high = (t >> 6) & 0x3;
+      a_high = (t >> 4) & 0x3;
+      b_low = (t >> 2) & 0x3;
+      a_low = (t >> 0) & 0x3;
+
+      b_high = (b_high & 1) + ((b_high >> 1) & 1);
+      a_high = (a_high & 1) + ((a_high >> 1) & 1);
+      b_low = (b_low & 1) + ((b_low >> 1) & 1);
+      a_low = (a_low & 1) + ((a_low >> 1) & 1);
+
+      sample_high = (a_high - b_high) < 0 ? a_high - b_high + KYBER_Q : a_high - b_high;
+      sample_low = (a_low - b_low) < 0 ? a_low - b_low + KYBER_Q : a_low - b_low;
+
+      ref_val = (sample_high << 16) | sample_low;
+
+      if (rvkat_chku32("kybercbd2", ref_val, asm_val))
+        __asm__ volatile ("ebreak");
+
+      #endif
+
+      r_ptr[4*i + j] = asm_val;
+
+    }
+
+    #else
+
     d  = t & 0x55555555;
     d += (t>>1) & 0x55555555;
 
@@ -71,6 +112,9 @@ static void cbd2(poly *r, const uint8_t buf[2*KYBER_N/4])
       b = (d >> (4*j+2)) & 0x3;
       r->coeffs[8*i+j] = a - b;
     }
+
+    #endif
+
   }
 }
 
@@ -94,6 +138,50 @@ static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
 
   for(i=0;i<KYBER_N/4;i++) {
     t  = load24_littleendian(buf+3*i);
+
+  #ifdef KYBER_ISE
+
+    uint32_t* r_ptr = ((uint32_t *) r->coeffs);
+    uint32_t asm_val;
+
+    for (j = 0; j < 2; j++, t = t >> 12) {
+
+      __asm__("kybercbd3 %0, %1" :  "=r"(asm_val) : "r"(t));
+
+      #ifdef KYBER_ISE_DEBUG
+
+      int32_t ref_val, a_high, b_high, a_low, b_low, sample_high, sample_low;
+
+      b_high = (t >> 9) & 0x7;
+      a_high = (t >> 6) & 0x7;
+      b_low = (t >> 3) & 0x7;
+      a_low = (t >> 0) & 0x7;
+
+      b_high = (b_high & 1) + ((b_high >> 1) & 1) + ((b_high >> 2) & 1);
+      a_high = (a_high & 1) + ((a_high >> 1) & 1) + ((a_high >> 2) & 1);
+      b_low = (b_low & 1) + ((b_low >> 1) & 1) + ((b_low >> 2) & 1);
+      a_low = (a_low & 1) + ((a_low >> 1) & 1) + ((a_low >> 2) & 1);
+
+      //sample_high = ((a_high - b_high) < 0) ? a_high - b_high + KYBER_Q : a_high - b_high;
+      sample_high = a_high - b_high;
+      sample_high = (sample_high < 0) ? sample_high + KYBER_Q : sample_high;
+      //sample_low = ((a_low - b_low) < 0) ? a_low - b_low + KYBER_Q : a_low - b_low;
+      sample_low = a_low - b_low;
+      sample_low = (sample_low < 0) ? sample_low + KYBER_Q : sample_low;
+
+      ref_val = (sample_high << 16) | (sample_low & 0x0000FFFF);
+
+      if (rvkat_chku32("kybercbd3", ref_val, asm_val))
+        __asm__ volatile ("ebreak");
+
+      #endif
+
+      r_ptr[2*i + j] = asm_val;
+
+    }
+
+  #else
+
     d  = t & 0x00249249;
     d += (t>>1) & 0x00249249;
     d += (t>>2) & 0x00249249;
@@ -103,7 +191,11 @@ static void cbd3(poly *r, const uint8_t buf[3*KYBER_N/4])
       b = (d >> (6*j+3)) & 0x7;
       r->coeffs[4*i+j] = a - b;
     }
+
+  #endif
+
   }
+
 }
 #endif
 

@@ -16,6 +16,11 @@
 **************************************************/
 int16_t montgomery_reduce(int32_t a)
 {
+
+  #ifdef KYBER_ISE
+  return a;
+  #else
+
   int32_t t;
   int16_t u;
 
@@ -24,6 +29,9 @@ int16_t montgomery_reduce(int32_t a)
   t = a - t;
   t >>= 16;
   return t;
+
+  #endif
+
 }
 
 /*************************************************
@@ -37,12 +45,20 @@ int16_t montgomery_reduce(int32_t a)
 * Returns:     integer in {0,...,q} congruent to a modulo q.
 **************************************************/
 int16_t barrett_reduce(int16_t a) {
+
+  #ifdef KYBER_ISE
+  return a;
+  #else
+
   int16_t t;
   const int16_t v = ((1U << 26) + KYBER_Q/2)/KYBER_Q;
 
   t  = (int32_t)v*a >> 26;
   t *= KYBER_Q;
   return a - t;
+
+  #endif
+
 }
 
 /*************************************************
@@ -55,7 +71,15 @@ int16_t barrett_reduce(int16_t a) {
 * Returns:     a - q if a >= q, else a
 **************************************************/
 int16_t csubq(int16_t a) {
+
+  #ifdef KYBER_ISE
+  return a;
+  #else
+
   a -= KYBER_Q;
   a += (a >> 15) & KYBER_Q;
   return a;
+
+  #endif
+
 }

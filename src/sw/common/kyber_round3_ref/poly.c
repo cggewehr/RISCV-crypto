@@ -24,8 +24,27 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], poly *a)
 
 #if (KYBER_POLYCOMPRESSEDBYTES == 128)
   for(i=0;i<KYBER_N/8;i++) {
-    for(j=0;j<8;j++)
+    for(j=0;j<8;j++) {
+
+      #ifdef KYBER_ISE
+
+      int asm_val;
+      __asm__("kybercompress %0, %1, %2" :  "=r"(asm_val) : "r"((uint32_t)a->coeffs[8*i+j]), "r"(4));
+
+      #ifdef KYBER_ISE_DEBUG
+      int ref_val = ((((uint16_t)a->coeffs[8*i+j] << 4) + KYBER_Q/2)/KYBER_Q) & 15;
+
+      if (rvkat_chku32("kybercompress 4", ref_val, asm_val))
+        __asm__ volatile ("ebreak");
+      #endif
+
+      t[j] = asm_val;
+
+      #else
       t[j] = ((((uint16_t)a->coeffs[8*i+j] << 4) + KYBER_Q/2)/KYBER_Q) & 15;
+      #endif
+
+    }
 
     r[0] = t[0] | (t[1] << 4);
     r[1] = t[2] | (t[3] << 4);
@@ -35,8 +54,27 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], poly *a)
   }
 #elif (KYBER_POLYCOMPRESSEDBYTES == 160)
   for(i=0;i<KYBER_N/8;i++) {
-    for(j=0;j<8;j++)
+    for(j=0;j<8;j++) {
+
+      #ifdef KYBER_ISE
+
+      int asm_val;
+      __asm__("kybercompress %0, %1, %2" :  "=r"(asm_val) : "r"((uint32_t)a->coeffs[8*i+j]), "r"(5));
+
+      #ifdef KYBER_ISE_DEBUG
+      int ref_val = ((((uint32_t)a->coeffs[8*i+j] << 5) + KYBER_Q/2)/KYBER_Q) & 31;
+
+      if (rvkat_chku32("kybercompress 5", ref_val, asm_val))
+        __asm__ volatile ("ebreak");
+      #endif
+
+      t[j] = asm_val;
+
+      #else
       t[j] = ((((uint32_t)a->coeffs[8*i+j] << 5) + KYBER_Q/2)/KYBER_Q) & 31;
+      #endif
+
+    }
 
     r[0] = (t[0] >> 0) | (t[1] << 5);
     r[1] = (t[1] >> 3) | (t[2] << 2) | (t[3] << 7);
@@ -179,7 +217,25 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], poly *a)
   for(i=0;i<KYBER_N/8;i++) {
     msg[i] = 0;
     for(j=0;j<8;j++) {
+
+      #ifdef KYBER_ISE
+
+      int asm_val;
+      __asm__("kybercompress %0, %1, %2" :  "=r"(asm_val) : "r"((uint32_t)a->coeffs[8*i+j]), "r"(1));
+
+      #ifdef KYBER_ISE_DEBUG
+      int ref_val = ((((uint16_t)a->coeffs[8*i+j] << 1) + KYBER_Q/2)/KYBER_Q) & 1;
+
+      if (rvkat_chku32("kybercompress 1", ref_val, asm_val))
+        __asm__ volatile ("ebreak");
+      #endif
+
+      msg[i] |= asm_val << j;
+
+      #else
       t = ((((uint16_t)a->coeffs[8*i+j] << 1) + KYBER_Q/2)/KYBER_Q) & 1;
+      #endif
+
       msg[i] |= t << j;
     }
   }
@@ -267,8 +323,11 @@ void poly_basemul_montgomery(poly *r, const poly *a, const poly *b)
   unsigned int i;
   for(i=0;i<KYBER_N/4;i++) {
     basemul(&r->coeffs[4*i], &a->coeffs[4*i], &b->coeffs[4*i], zetas[64+i]);
-    basemul(&r->coeffs[4*i+2], &a->coeffs[4*i+2], &b->coeffs[4*i+2],
-            -zetas[64+i]);
+    #ifdef KYBER_ISE
+    basemul(&r->coeffs[4*i+2], &a->coeffs[4*i+2], &b->coeffs[4*i+2], (-zetas[64+i]) + KYBER_Q);
+    #else
+    basemul(&r->coeffs[4*i+2], &a->coeffs[4*i+2], &b->coeffs[4*i+2], -zetas[64+i]);
+    #endif
   }
 }
 
@@ -282,10 +341,14 @@ void poly_basemul_montgomery(poly *r, const poly *a, const poly *b)
 **************************************************/
 void poly_tomont(poly *r)
 {
+  #ifdef KYBER_ISE
+  return;
+  #else
   unsigned int i;
   const int16_t f = (1ULL << 32) % KYBER_Q;
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] = montgomery_reduce((int32_t)r->coeffs[i]*f);
+  #endif
 }
 
 /*************************************************
@@ -298,9 +361,13 @@ void poly_tomont(poly *r)
 **************************************************/
 void poly_reduce(poly *r)
 {
+  #ifdef KYBER_ISE
+  return;
+  #else
   unsigned int i;
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] = barrett_reduce(r->coeffs[i]);
+  #endif
 }
 
 /*************************************************
@@ -314,9 +381,13 @@ void poly_reduce(poly *r)
 **************************************************/
 void poly_csubq(poly *r)
 {
+  #ifdef KYBER_ISE
+  return;
+  #else
   unsigned int i;
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] = csubq(r->coeffs[i]);
+  #endif
 }
 
 /*************************************************
@@ -330,9 +401,51 @@ void poly_csubq(poly *r)
 **************************************************/
 void poly_add(poly *r, const poly *a, const poly *b)
 {
+
+  #ifdef KYBER_ISE
+
+  unsigned int i;
+
+  uint32_t* a_ptr = ((uint32_t *) a->coeffs);
+  uint32_t* b_ptr = ((uint32_t *) b->coeffs);
+  uint32_t* r_ptr = ((uint32_t *) r->coeffs);
+
+  uint32_t a_2coeff, b_2coeff, add_result;
+
+  for(i=0;i<KYBER_N/2;i++) {
+
+	  a_2coeff = a_ptr[i];
+	  b_2coeff = b_ptr[i];
+    __asm__("kyberadd %0, %1, %2" :  "=r"(add_result) : "r"(a_2coeff), "r"(b_2coeff));
+
+    #ifdef KYBER_ISE_DEBUG
+
+    puts("kyberadd a_2coeff = ");
+    puthex(a_2coeff);
+    puts(" | ");
+    puts("kyberadd b_2coeff = ");
+    puthex(b_2coeff);
+    puts("\n");
+
+    int ref_add_result_high = ((a_2coeff >> 16) + (b_2coeff >> 16)) % KYBER_Q;
+    int ref_add_result_low = ((a_2coeff & 0x0000FFFF) + (b_2coeff & 0x0000FFFF)) % KYBER_Q;
+
+    if (rvkat_chku32("kyberadd", ((ref_add_result_high << 16) | ref_add_result_low), add_result))
+      __asm__ volatile ("ebreak");
+
+    #endif
+
+    r_ptr[i] = add_result;
+
+  }
+
+  #else
+
   unsigned int i;
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] = a->coeffs[i] + b->coeffs[i];
+
+  #endif
 }
 
 /*************************************************
@@ -346,7 +459,54 @@ void poly_add(poly *r, const poly *a, const poly *b)
 **************************************************/
 void poly_sub(poly *r, const poly *a, const poly *b)
 {
+
+  #ifdef KYBER_ISE
+
+  unsigned int i;
+
+  uint32_t* a_ptr = ((uint32_t *) a->coeffs);
+  uint32_t* b_ptr = ((uint32_t *) b->coeffs);
+  uint32_t* r_ptr = ((uint32_t *) r->coeffs);
+
+  uint32_t a_2coeff, b_2coeff, sub_result;
+  // uint16_t a_2coeff, b_2coeff, add_result;
+
+  for(i=0;i<KYBER_N/2;i++) {
+  // for(i=0;i<KYBER_N;i++) {
+
+	  a_2coeff = a_ptr[i];
+	  b_2coeff = b_ptr[i];
+
+    __asm__("kybersub %0, %1, %2" :  "=r"(sub_result) : "r"(a_2coeff), "r"(b_2coeff));
+
+    #ifdef KYBER_ISE_DEBUG
+
+    puts("kybersub a_2coeff = ");
+    puthex(a_2coeff);
+    puts(" | ");
+    puts("kybersub b_2coeff = ");
+    puthex(b_2coeff);
+    puts("\n");
+
+    int ref_sub_result_high = ((a_2coeff >> 16) - (b_2coeff >> 16));
+    ref_sub_result_high = (ref_sub_result_high < 0) ? ref_sub_result_high + 3329 : ref_sub_result_high;
+    int ref_sub_result_low = ((a_2coeff & 0x0000FFFF) - (b_2coeff & 0x0000FFFF));
+    ref_sub_result_low = (ref_sub_result_low < 0) ? ref_sub_result_low + 3329 : ref_sub_result_low;
+
+    if (rvkat_chku32("kybersub", ((ref_sub_result_high << 16) | ref_sub_result_low), sub_result))
+      __asm__ volatile ("ebreak");
+
+    #endif
+
+    r_ptr[i] = sub_result;
+
+  }
+
+  #else
+
   unsigned int i;
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
+
+  #endif
 }
