@@ -120,12 +120,12 @@ KECCAK_HEADERS := $(wildcard $(KECCAK_DIR)/*.h)
 KECCAK_OBJS := $(KECCAK_C_SOURCES:%.c=%.o) $(KECCAK_ASM_SOURCES:%.S=%.o)
 KECCAK_OBJS := $(subst ${KECCAK_DIR}, ${SW_BUILD_PATH}/obj, ${KECCAK_OBJS})
 
-# ASCON_DIR ?= $(COMMON_DIR)/ascon
-# ASCON_C_SOURCES = $(wildcard $(ASCON_DIR)/*.c)
-# ASCON_ASM_SOURCES = $(wildcard $(ASCON_DIR)/*.S)
-# ASCON_HEADERS = $(wildcard $(ASCON_DIR)/*.h)
-# ASCON_OBJS := $(ASCON_C_SOURCES:%.c=%.o) $(ASCON_ASM_SOURCES:%.S=%.o)
-# ASCON_OBJS := $(subst ${ASCON_DIR}, ${SW_BUILD_PATH}/obj, ${ASCON_OBJS})
+ASCON_DIR ?= $(COMMON_DIR)/ascon
+ASCON_C_SOURCES = $(wildcard $(ASCON_DIR)/*.c)
+ASCON_ASM_SOURCES = $(wildcard $(ASCON_DIR)/*.S)
+ASCON_HEADERS = $(wildcard $(ASCON_DIR)/*.h)
+ASCON_OBJS := $(ASCON_C_SOURCES:%.c=%.o) $(ASCON_ASM_SOURCES:%.S=%.o)
+ASCON_OBJS := $(subst ${ASCON_DIR}, ${SW_BUILD_PATH}/obj, ${ASCON_OBJS})
 
 KYBER_DIR ?= $(COMMON_DIR)/kyber_round3_ref
 KYBER_C_SOURCES = $(wildcard $(KYBER_DIR)/*.c)
@@ -141,8 +141,7 @@ LOCAL_OBJS := $(LOCAL_C_SOURCES:%.c=%.o) $(LOCAL_ASM_SOURCES:%.S=%.o)
 LOCAL_OBJS := $(subst ${PROGRAM_DIR}, ${SW_BUILD_PATH}/obj, ${LOCAL_OBJS})
 
 # Source files will be looked for in the VPATH dir
-# VPATH = $(PROGRAM_DIR) $(COMMON_DIR) $(TINYCRYPT_DIR) $(KECCAK_DIR) $(ASCON_DIR) $(KYBER_DIR)
-VPATH := $(PROGRAM_DIR) $(COMMON_DIR) $(TINYCRYPT_DIR) $(KECCAK_DIR) $(KYBER_DIR)
+VPATH = $(PROGRAM_DIR) $(COMMON_DIR) $(TINYCRYPT_DIR) $(KECCAK_DIR) $(ASCON_DIR) $(KYBER_DIR)
 
 # ------------------------------
 # Compiler and other tools setup
@@ -153,8 +152,7 @@ ifneq (${ZBKB}, 0)
 	ARCH+=_zbkb
 endif
 
-# INCS := -I$(PROGRAM_DIR) -I$(COMMON_DIR) -I$(TINYCRYPT_DIR) -I$(KECCAK_DIR) -I$(ASCON_DIR) -I$(KYBER_DIR)
-INCS := -I$(PROGRAM_DIR) -I$(COMMON_DIR) -I$(TINYCRYPT_DIR) -I$(KECCAK_DIR) -I$(KYBER_DIR)
+INCS := -I$(PROGRAM_DIR) -I$(COMMON_DIR) -I$(TINYCRYPT_DIR) -I$(KECCAK_DIR) -I$(ASCON_DIR) -I$(KYBER_DIR)
 # CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -Os -fvisibility=hidden -ffreestanding -flto -fcallgraph-info=su $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
 CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -Os -fvisibility=hidden -ffreestanding -fcallgraph-info=su -fstack-usage $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
 CC = riscv64-elf-gcc
@@ -170,8 +168,7 @@ LINKER_SCRIPT ?= $(COMMON_DIR)/link.ld
 # NB: Each .o target in here should be in the $OBJS list
 # ------------------------------
 
-# OBJS := ${LOCAL_OBJS} ${COMMON_OBJS} ${TINYCRYPT_OBJS} ${KECCAK_OBJS} ${ASCON_OBJS} ${KYBER_OBJS}
-OBJS := ${LOCAL_OBJS} ${COMMON_OBJS} ${TINYCRYPT_OBJS} ${KECCAK_OBJS} ${KYBER_OBJS}
+OBJS := ${LOCAL_OBJS} ${COMMON_OBJS} ${TINYCRYPT_OBJS} ${KECCAK_OBJS} ${ASCON_OBJS} ${KYBER_OBJS}
 OUTFILES := $(PROG).elf $(PROG).vmem $(PROG).bin
 #OUTFILES := $(PROG).elf $(PROG).vmem
 OUTFILES := $(addprefix ${SW_BUILD_PATH}/, ${OUTFILES})

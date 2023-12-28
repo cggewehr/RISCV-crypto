@@ -70,7 +70,8 @@ SYMBOLS_LIST+=crypto_kem_keypair
 SYMBOLS_LIST+=crypto_kem_enc
 SYMBOLS_LIST+=crypto_kem_dec
 SYMBOLS_LIST+=rvkat_info
-SYMBOLS_LIST+=ascon_core"
+SYMBOLS_LIST+=ascon_core
+SYMBOLS_LIST+=crypto_aead_encrypt_opt64_C2_unrolled"
 
 START_TIME?=0ns
 END_TIME?=0ns
