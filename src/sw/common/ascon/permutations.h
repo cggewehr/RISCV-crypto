@@ -13,62 +13,46 @@ typedef struct {
 #define ROTR64(x, n) (((x) >> (n)) | ((x) << (64 - (n))))
 
 #if ASCON_ISE == 1
+#define STATE_VARS() register u64 s0 asm("s2"), s1 asm("s4"), s2 asm("s6"), s3 asm("s8"), s4 asm("s10"), r0 asm("t5"), t0, t1, t2
 #define ASCON_LINEAR() \
   do { \
-    unsigned int hi = r.x0 >> 32; \
-    unsigned int rd_lo, rd_hi; \
-    __asm__ ("asconsigma0h	 %0, %1, %2" : "=&r"(rd_hi) : "r"(r.x0), "r"(hi)); \
-    __asm__ ("asconsigma0l	 %0, %1, %2" : "=&r"(rd_lo) : "r"(r.x0), "r"(hi)); \
-    s.x0 = rd_lo | (u64) rd_hi << 32; \
-    hi = r.x1 >> 32; \
-    __asm__ ("asconsigma1h	 %0, %1, %2" : "=&r"(rd_hi) : "r"(r.x1), "r"(hi)); \
-    __asm__ ("asconsigma1l	 %0, %1, %2" : "=&r"(rd_lo) : "r"(r.x1), "r"(hi)); \
-    s.x1 = rd_lo | (u64) rd_hi << 32; \
-    hi = r.x2 >> 32; \
-    __asm__ ("asconsigma2h	 %0, %1, %2" : "=&r"(rd_hi) : "r"(r.x2), "r"(hi)); \
-    __asm__ ("asconsigma2l	 %0, %1, %2" : "=&r"(rd_lo) : "r"(r.x2), "r"(hi)); \
-    s.x2 = rd_lo | (u64) rd_hi << 32; \
-    hi = r.x3 >> 32; \
-    __asm__ ("asconsigma3h	 %0, %1, %2" : "=&r"(rd_hi) : "r"(r.x3), "r"(hi)); \
-    __asm__ ("asconsigma3l	 %0, %1, %2" : "=&r"(rd_lo) : "r"(r.x3), "r"(hi)); \
-    s.x3 = rd_lo | (u64) rd_hi << 32; \
-    hi = r.x4 >> 32; \
-    __asm__ ("asconsigma4h	 %0, %1, %2" : "=&r"(rd_hi) : "r"(r.x4), "r"(hi)); \
-    __asm__ ("asconsigma4l	 %0, %1, %2" : "=&r"(rd_lo) : "r"(r.x4), "r"(hi)); \
-    s.x4 = rd_lo | (u64) rd_hi << 32; \
+    __asm__ ("asconsigma0h	 s3, s6, s7"); \
+    __asm__ ("asconsigma0l	 s2, s6, s7"); \
+    __asm__ ("asconsigma2h	 s7, s10, s11"); \
+    __asm__ ("asconsigma2l	 s6, s10, s11"); \
+    __asm__ ("asconsigma4h	 s11, s4, s5"); \
+    __asm__ ("asconsigma4l	 s10, s4, s5"); \
+    __asm__ ("asconsigma1h	 s5, s8, s9"); \
+    __asm__ ("asconsigma1l	 s4, s8, s9"); \
+    /* It's necessary to use the r0 variable here otherwise gcc will think r0 is unused and will use the registers for something else */ \
+    unsigned int hi = r0 >> 32; \
+    __asm__ ("asconsigma3h	 s9, %0, %1" : : "r"(r0), "r"(hi)); \
+    __asm__ ("asconsigma3l	 s8, %0, %1" : : "r"(r0), "r"(hi)); \
   } while (0)
 #else
+#define STATE_VARS() u64 s0, s1, s2, s3, s4, r0, t0, t1, t2
 #define ASCON_LINEAR() \
   do { \
-    s.x0 = r.x0 ^ ROTR64(r.x0, 19) ^ ROTR64(r.x0, 28); \
-    s.x1 = r.x1 ^ ROTR64(r.x1, 61) ^ ROTR64(r.x1, 39); \
-    s.x2 = r.x2 ^ ROTR64(r.x2,  1) ^ ROTR64(r.x2,  6); \
-    s.x3 = r.x3 ^ ROTR64(r.x3, 10) ^ ROTR64(r.x3, 17); \
-    s.x4 = r.x4 ^ ROTR64(r.x4,  7) ^ ROTR64(r.x4, 41); \  
+    s0 = s2 ^ ROTR64(s2, 19) ^ ROTR64(s2, 28); \
+    s2 = s4 ^ ROTR64(s4,  1) ^ ROTR64(s4,  6); \
+    s4 = s1 ^ ROTR64(s1,  7) ^ ROTR64(s1, 41); \
+    s1 = s3 ^ ROTR64(s3, 61) ^ ROTR64(s3, 39); \
+    s3 = r0 ^ ROTR64(r0, 10) ^ ROTR64(r0, 17); \
   } while (0)
 #endif
 
 #define ROUND(C)                    \
   do {                              \
-    state t, r;                     \
-    s.x2 ^= C;                      \
-    t.x0 = s.x1 ^ s.x2; \
-    t.x1 = s.x0 ^ s.x4; \
-    t.x2 = s.x3 ^ s.x4; \
-    s.x4 = ~s.x4; \
-    s.x4 = s.x4 | s.x3; \
-    r.x2 = s.x4 ^ t.x0; \
-    s.x3 = s.x3 ^ s.x1; \
-    s.x3 = s.x3 | t.x0; \
-    r.x1 = s.x3 ^ t.x1; \
-    s.x2 = s.x2 ^ t.x1; \
-    s.x2 = s.x2 | s.x1; \
-    r.x0 = s.x2 ^ t.x2; \
-    t.x1 = ~t.x1; \
-    s.x1 = s.x1 & t.x1; \
-    r.x4 = s.x1 ^ t.x2; \
-    s.x0 = s.x0 | t.x2; \
-    r.x3 = s.x0 ^ t.x0; \
+    s2 ^= C;                      \
+    t0 = s1 ^ s2; \
+    t1 = s0 ^ s4; \
+    t2 = s3 ^ s4; \
+    s4 = (~s4 | s3) ^ t0; \
+    s3 = ((s3 ^ s1) | t0) ^ t1; \
+    s2 = ((s2 ^ t1) | s1) ^ t2; \
+    s1 = (~t1 & s1) ^ t2; \
+    s0 |= t2; \
+    r0 = s0 ^ t0; \
     ASCON_LINEAR(); \
   } while (0)
 
@@ -77,16 +61,38 @@ typedef struct {
 
 #define P12()    \
   do {           \
+    STATE_VARS(); \
+    s0 = s.x0; \
+    s1 = s.x1; \
+    s2 = s.x2; \
+    s3 = s.x3; \
+    s4 = s.x4; \
     for (int i = P12_CONST; i >= 0x4b; i -= 0xf) { \
       ROUND(i); \
     } \
+    s.x0 = s0; \
+    s.x1 = s1; \
+    s.x2 = s2; \
+    s.x3 = s3; \
+    s.x4 = s4; \
   } while (0)
 
 #define P6()     \
   do {           \
+    STATE_VARS(); \
+    s0 = s.x0; \
+    s1 = s.x1; \
+    s2 = s.x2; \
+    s3 = s.x3; \
+    s4 = s.x4; \
     for (int i = P6_CONST; i >= 0x4b; i -= 0xf) { \
       ROUND(i); \
     } \
+    s.x0 = s0; \
+    s.x1 = s1; \
+    s.x2 = s2; \
+    s.x3 = s3; \
+    s.x4 = s4; \
   } while (0)
 
 #endif  // PERMUTATIONS_H_
