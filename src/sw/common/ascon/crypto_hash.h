@@ -1,0 +1,1 @@
+int ascon_hash(const unsigned char *m, unsigned long long mlen, const unsigned char *c, unsigned long long clen,  int xof);

@@ -9,7 +9,7 @@
     ((u64)(8 * (CRYPTO_KEYBYTES)) << 56 | (u64)(8 * (RATE)) << 48 |            \
      (u64)(PA_ROUNDS) << 40 | (u64)(PB_ROUNDS) << 32)
 
-int crypto_aead_decrypt_opt64_C2_unrolled(
+int ascon_aead_decrypt_opt64(
     unsigned char *m, unsigned long long *mlen, unsigned char *nsec,
     const unsigned char *c, unsigned long long clen, const unsigned char *ad,
     unsigned long long adlen, const unsigned char *npub,

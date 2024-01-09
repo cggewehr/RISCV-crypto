@@ -1,5 +1,5 @@
 #include "ascon/crypto_aead.h"
-#include "ascon/kat.h"
+#include "kat.h"
 
 void print(unsigned char c, unsigned char* x, unsigned long long xlen) {
   unsigned long long i;
@@ -47,7 +47,7 @@ int main() {
   puts(" m");
   print('m', m, mlen);
   puts(" -> ");
-  result |= crypto_aead_encrypt_opt64_C2_unrolled(c, &clen, m, mlen, a, alen, (void*)0, n, k);
+  result |= ascon_aead_encrypt_opt64(c, &clen, m, mlen, a, alen, (void*)0, n, k);
 
   puts("result");
   puthex(result);
@@ -57,7 +57,7 @@ int main() {
   puts(" t");
   print('t', c + clen - CRYPTO_ABYTES, CRYPTO_ABYTES);
   puts(" -> ");
-  result |= crypto_aead_decrypt_opt64_C2_unrolled(m, &mlen, (void*)0, c, clen, a, alen, n, k);
+  result |= ascon_aead_decrypt_opt64(m, &mlen, (void*)0, c, clen, a, alen, n, k);
   puts("result");
   puthex(result);
   puts("\n");
