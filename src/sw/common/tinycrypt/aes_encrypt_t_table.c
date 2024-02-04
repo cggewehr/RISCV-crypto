@@ -38,6 +38,10 @@
 
 #include <test_utils.h>
 
+#ifdef AES_RISCV_ASM
+#include "aes_encrypt_tc.inc"
+#else
+
 static const uint32_t Te2[256] = {
 	0x63c6a563, 0x7cf8847c, 0x77ee9977, 0x7bf68d7b,
 	0xf2ff0df2, 0x6bd6bd6b, 0x6fdeb16f, 0xc59154c5,
@@ -529,3 +533,5 @@ int tc_aes_encrypt(uint8_t *out, const uint8_t *in, const TCAesKeySched_t s) {
 
 	return TC_CRYPTO_SUCCESS;
 }
+
+#endif
