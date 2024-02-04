@@ -147,9 +147,11 @@ VPATH = $(PROGRAM_DIR) $(COMMON_DIR) $(TINYCRYPT_DIR) $(KECCAK_DIR) $(ASCON_DIR)
 # Compiler and other tools setup
 # ------------------------------
 
-ARCH ?= rv32imc_zicsr_zkne_zknh
+# ARCH ?= rv32imc_zicsr_zkne_zknh
 ifneq (${ZBKB}, 0)
-	ARCH+=_zbkb
+	ARCH ?= rv32imc_zicsr_zkne_zknh_zbkb
+else
+	ARCH ?= rv32imc_zicsr_zkne_zknh
 endif
 
 INCS := -I$(PROGRAM_DIR) -I$(COMMON_DIR) -I$(TINYCRYPT_DIR) -I$(KECCAK_DIR) -I$(ASCON_DIR) -I$(KYBER_DIR)
