@@ -90,6 +90,8 @@ sw:
 	make -f ${ROOT_PATH}/src/sw/${PROG}/Makefile PROGRAM=${PROG} SW_BUILD_PATH=${SW_BUILD_PATH} COMMON_DIR=${COMMON_DIR} all
 	nm sw_build/${PROG}.elf > sw_build/nm.out
 	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$3) print $$3, $$1}' sw_build/nm.out > sw_build/symbol_table.txt
+	@echo -e "\n---- Stack Usage:"
+	python3 ${ROOT_PATH}/tools/stack-usage/checkStackUsage.py ./sw_build/${PROG}.elf ./sw_build $(subst $\",,$(SYMBOLS_LIST)) | tee sw_build/stack-usage.txt
 
 comp:
 
