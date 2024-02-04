@@ -40,6 +40,8 @@ int main() {
 
 	rvkat_info("=== Beginning of " CRYPTO_ALGNAME " test ===");
 
+    data_ind_timing_enable(1);
+
     for (int i=0; i<48; i++)
         entropy_input[i] = i;
 
