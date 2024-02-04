@@ -8,7 +8,8 @@
 `endif
 
 `ifndef RV32B
-  `define RV32B ibex_pkg::RV32BCrypto
+  // `define RV32B ibex_pkg::RV32BCrypto
+  `define RV32B ibex_pkg::RV32BNone
 `endif
 
 `ifndef RegFile
@@ -49,7 +50,7 @@ module tb_top #(
   parameter                      SymbolAddrs      = "sw_build/symbol_table.txt"
 
 ) ( );
-  
+
   bit clk;
   bit rst_n;
 
@@ -61,7 +62,7 @@ module tb_top #(
     int start_addr;
     int end_addr;
   endclass
-  
+
   class counters_info_t;
     string function_name;
     int start_addr;
@@ -70,54 +71,54 @@ module tb_top #(
   endclass
 
   symbol_info_t symbol_info[int];  // Indexed by start_addrs
-  
+
   typedef enum logic {CoreD} bus_host_e;
   typedef enum logic[1:0] {Ram, SimCtrl, Timer} bus_device_e;
 
   initial begin
-    
+
     clk <= 1'b0;
-    
+
     forever
       #(`ClockPeriod/2 * 1ns) clk <= ~clk;
 
   end
-  
+
   initial begin
-  
+
     rst_n <= 1'b1;
-    
+
     repeat (10)
       #`ClockPeriod
-  
+
     rst_n <= 1'b0;
-    
+
     repeat (10)
       #`ClockPeriod
-  
+
     rst_n <= 1'b1;
-    
+
   end
 
   ibex_simple_system #(
-    .SecureIbex      (SecureIbex      ),           
-    .ICacheScramble  (ICacheScramble  ),           
-    .PMPEnable       (PMPEnable       ),           
-    .PMPGranularity  (PMPGranularity  ),           
-    .PMPNumRegions   (PMPNumRegions   ),           
-    .MHPMCounterNum  (MHPMCounterNum  ),           
-    .MHPMCounterWidth(MHPMCounterWidth),           
-    .RV32E           (RV32E           ),           
-    .RV32M           (RV32M           ),           
-    .RV32B           (RV32B           ),           
-    .RegFile         (RegFile         ),           
-    .BranchTargetALU (BranchTargetALU ),           
-    .WritebackStage  (WritebackStage  ),           
-    .ICache          (ICache          ),           
-    .DbgTriggerEn    (DbgTriggerEn    ),           
-    .ICacheECC       (ICacheECC       ),           
-    .BranchPredictor (BranchPredictor ),           
-    .SRAMInitFile    (SRAMInitFile    )             
+    .SecureIbex      (SecureIbex      ),
+    .ICacheScramble  (ICacheScramble  ),
+    .PMPEnable       (PMPEnable       ),
+    .PMPGranularity  (PMPGranularity  ),
+    .PMPNumRegions   (PMPNumRegions   ),
+    .MHPMCounterNum  (MHPMCounterNum  ),
+    .MHPMCounterWidth(MHPMCounterWidth),
+    .RV32E           (RV32E           ),
+    .RV32M           (RV32M           ),
+    .RV32B           (RV32B           ),
+    .RegFile         (RegFile         ),
+    .BranchTargetALU (BranchTargetALU ),
+    .WritebackStage  (WritebackStage  ),
+    .ICache          (ICache          ),
+    .DbgTriggerEn    (DbgTriggerEn    ),
+    .ICacheECC       (ICacheECC       ),
+    .BranchPredictor (BranchPredictor ),
+    .SRAMInitFile    (SRAMInitFile    )
   ) u_ibex_simple_system (
     .IO_CLK(clk),
     .IO_RST_N(rst_n)
@@ -250,7 +251,7 @@ module tb_top #(
   endfunction
 
   function void print_counters();
-    
+
     string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions", "Multiplier Busy", "Divider Busy", "Memory store word", "Memory store half word", "Memory store byte", "Memory load word", "Memory load half word", "Memory load byte"};
 
     $display("====================");
@@ -259,12 +260,12 @@ module tb_top #(
 
     foreach (reg_names[reg_index])
       $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index));
-    
+
     $display("====================");
 
   endfunction
 
-  
+
   function void print_counters_nested(counters_info_t count);
 
     string reg_names[] = {"Cycles", "NONE", "Instructions Retired", "LSU Busy", "Fetch Wait", "Loads", "Stores", "Jumps", "Conditional Branches", "Taken Conditional Branches", "Compressed Instructions", "Multiplier Busy", "Divider Busy", "Memory store word", "Memory store half word", "Memory store byte", "Memory load word", "Memory load half word", "Memory load byte"};
@@ -275,7 +276,7 @@ module tb_top #(
 
     foreach (reg_names[reg_index])
       $display("%s: %0d", reg_names[reg_index], mhpmcounter_get(reg_index)-count.counters[reg_index]);
-    
+
     $display("====================");
 
   endfunction
@@ -289,9 +290,9 @@ module tb_top #(
     foreach (reg_names[reg_index])
       $xm_deposit($sformatf("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.gen_cntrs[%0d].gen_imp.mcounters_variable_i.counter_d[31:0]", reg_index), "32'd0");
 
-    $xm_deposit("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mcycle_counter_i.counter_d[31:0]", "32'd0"); 
-    $xm_deposit("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.minstret_counter_i.counter_d[31:0]", "32'd0"); 
- 
+    $xm_deposit("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.mcycle_counter_i.counter_d[31:0]", "32'd0");
+    $xm_deposit("tb_top.u_ibex_simple_system.u_top.u_ibex_top.u_ibex_core.cs_registers_i.minstret_counter_i.counter_d[31:0]", "32'd0");
+
   endtask
 
   `endif
@@ -330,9 +331,9 @@ module tb_top #(
         for (int j = 0; j < symbol_info[i].times_called; j++) begin
 
           string line;
-          line = $sformatf("%s_%0d %t %t %t", symbol_info[i].function_name, j, symbol_info[i].start_times[j], 
+          line = $sformatf("%s_%0d %t %t %t", symbol_info[i].function_name, j, symbol_info[i].start_times[j],
             symbol_info[i].end_times[j], symbol_info[i].end_times[j] - symbol_info[i].start_times[j]);
-        
+
           $display(line);
           $fdisplay(fd, line);
 
