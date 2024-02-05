@@ -1,5 +1,5 @@
 #include "ascon/crypto_hash.h"
-#include "kat.h"
+#include "ascon/kat.h"
 
 void print(unsigned char c, unsigned char* x, unsigned long long xlen) {
     unsigned long long i;
