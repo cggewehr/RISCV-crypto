@@ -46,10 +46,17 @@ void sha3_final(uint8_t * md, sha3_ctx_t * c);	// digest goes to md
 //	SHAKE128 and SHAKE256 extensible-output functions
 #define shake128_init(c) sha3_init(c, 16)
 #define shake256_init(c) sha3_init(c, 32)
+#ifdef TURBOSHAKE
+#define turboshake128_init(c) sha3_init(c, 16)
+#define turboshake256_init(c) sha3_init(c, 32)
+#endif
 #define shake_update sha3_update
 
 //	add padding (call once after calls to shake_update() are done
 void shake_xof(sha3_ctx_t * c);
+#ifdef TURBOSHAKE
+void turboshake_xof(sha3_ctx_t * c, char* domain_separation);
+#endif
 
 //	squeeze output (can call repeat)
 void shake_out(uint8_t * out, size_t len, sha3_ctx_t * c);
@@ -59,6 +66,7 @@ void shake_out(uint8_t * out, size_t len, sha3_ctx_t * c);
 
 #define shake256_absorb(STATE, IN, LEN) shake256_init(STATE); shake_update(STATE, IN, LEN); shake_xof(STATE)
 #define shake256_squeeze(STATE, OUT, LEN) shake_out(OUT, LEN, STATE)
+
 
 #ifdef __cplusplus
 }
