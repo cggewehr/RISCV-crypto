@@ -5,7 +5,8 @@
 #include <stdint.h>
 #include "params.h"
 
-#ifdef KYBER_90S
+// #ifdef KYBER_90S
+#if defined(KYBER_90S)
 
 // #include "aes256ctr.h"
 #include "symmetric-aes.h"
@@ -18,10 +19,10 @@
 typedef aes256ctr_ctx xof_state;
 
 // #define kyber_aes256ctr_xof_absorb KYBER_NAMESPACE(kyber_aes256ctr_xof_absorb)
-void kyber_aes256ctr_xof_absorb(aes256ctr_ctx *state,
-                                const uint8_t seed[KYBER_SYMBYTES],
-                                uint8_t x,
-                                uint8_t y);
+// void kyber_aes256ctr_xof_absorb(aes256ctr_ctx *state,
+//                                 const uint8_t seed[KYBER_SYMBYTES],
+//                                 uint8_t x,
+//                                 uint8_t y);
 
 // #define kyber_aes256ctr_prf AES256CTR_NAMESPACE(_kyber_aes256ctr_prf)
 // void kyber_aes256ctr_prf(uint8_t *out,
@@ -41,7 +42,31 @@ void kyber_aes256ctr_xof_absorb(aes256ctr_ctx *state,
         kyber_aes256ctr_prf(OUT, OUTBYTES, KEY, NONCE)
 #define kdf(OUT, IN, INBYTES) sha256(OUT, IN, INBYTES)
 
+
+#elif defined(KYBER_ASCON)
+
+
+#include "ascon_prim.h"
+
+#define XOF_BLOCKBYTES ASCON_HASH_RATE
+typedef ascon_state_t xof_state;
+
+// int ascon_hash(const unsigned char *m, unsigned long long mlen, unsigned char *c, unsigned long long outlen, int xof)
+
+// #define hash_h(OUT, IN, INBYTES) crypto_hash(OUT, 32, IN, INBYTES)
+#define hash_h(OUT, IN, INBYTES) ascon_hash(IN, INBYTES, OUT, 32, 1)
+// #define hash_g(OUT, IN, INBYTES) crypto_hash(OUT, 64, IN, INBYTES)
+#define hash_h(OUT, IN, INBYTES) ascon_hash(IN, INBYTES, OUT, 64, 1)
+#define xof_absorb(STATE, SEED, X, Y) kyber_ascon_absorb(STATE, SEED, X, Y)
+#define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) \
+        ascon_squeezeblocks(OUT, OUTBLOCKS, STATE)
+#define prf(OUT, OUTBYTES, KEY, NONCE) \
+        kyber_ascon_prf(OUT, OUTBYTES, KEY, NONCE)
+#define kdf(OUT, IN, INBYTES) ascon_hash(IN, INBYTES, OUT, KYBER_SSBYTES, 1)
+
+
 #else
+
 
 // #include "fips202.h"
 #include "sha3_api.h"
