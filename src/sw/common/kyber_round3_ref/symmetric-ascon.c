@@ -29,10 +29,15 @@ void kyber_ascon_absorb(ascon_state_t *state,
   extseed[i++] = x;
   extseed[i]   = y;
 
+
+  // rvkat_hexout("kyber_ascon_absorb extseed", extseed, sizeof(extseed));
+
   // ascon_inithash(state);
 
+  // puts("right before absorb\n");
   // shake128_absorb(state, extseed, sizeof(extseed));
   ascon_hash_absorb(state, extseed, sizeof(extseed), 1);
+  // puts("right after absorb\n");
   // ascon_absorb(state, extseed, sizeof(extseed));
 
 }
@@ -50,7 +55,7 @@ void kyber_ascon_absorb(ascon_state_t *state,
 *              - uint8_t nonce:      single-byte nonce (public PRF input)
 **************************************************/
 void kyber_ascon_prf(uint8_t *out,
-                        size_t outlen,
+                        uint32_t outlen,
                         const uint8_t key[KYBER_SYMBYTES],
                         uint8_t nonce)
 {
@@ -67,10 +72,16 @@ void kyber_ascon_prf(uint8_t *out,
 
 }
 
-void ascon_squeezeblocks(uint8_t *out, size_t nblocks, ascon_state_t *state)
+void ascon_squeezeblocks(uint8_t *out, uint32_t nblocks, ascon_state_t *state)
 {
   // keccak_squeezeblocks(out, nblocks, state->s, SHAKE256_RATE);
   // ascon_squeeze(state, out, nblocks*ASCON_HASH_RATE);
   // ascon_hash_squeeze(state *s_ptr, unsigned char *out, unsigned long long len, int xof)
+  // puts("ascon_squeezeblocks bytes out");
+  // puthex(nblocks*ASCON_HASH_RATE);
+  // puts("\n");
   ascon_hash_squeeze(state, out, nblocks*ASCON_HASH_RATE, 1);
+
+  // rvkat_hexout("ascon_squeezeblocks out", out, nblocks*ASCON_HASH_RATE);
+
 }

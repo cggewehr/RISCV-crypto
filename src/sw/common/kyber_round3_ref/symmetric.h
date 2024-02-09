@@ -51,12 +51,12 @@ typedef aes256ctr_ctx xof_state;
 #define XOF_BLOCKBYTES ASCON_HASH_RATE
 typedef ascon_state_t xof_state;
 
-// int ascon_hash(const unsigned char *m, unsigned long long mlen, unsigned char *c, unsigned long long outlen, int xof)
+// int ascon_hash(const unsigned char *m, uint32_t mlen, unsigned char *c, uint32_t outlen, int xof)
 
 // #define hash_h(OUT, IN, INBYTES) crypto_hash(OUT, 32, IN, INBYTES)
 #define hash_h(OUT, IN, INBYTES) ascon_hash(IN, INBYTES, OUT, 32, 1)
 // #define hash_g(OUT, IN, INBYTES) crypto_hash(OUT, 64, IN, INBYTES)
-#define hash_h(OUT, IN, INBYTES) ascon_hash(IN, INBYTES, OUT, 64, 1)
+#define hash_g(OUT, IN, INBYTES) ascon_hash(IN, INBYTES, OUT, 64, 1)
 #define xof_absorb(STATE, SEED, X, Y) kyber_ascon_absorb(STATE, SEED, X, Y)
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) \
         ascon_squeezeblocks(OUT, OUTBLOCKS, STATE)

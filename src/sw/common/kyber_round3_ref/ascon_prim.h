@@ -6,19 +6,22 @@
 
 #define ASCON_NAMESPACE(s) pqcrystals_ascon_ref##s
 
-#include "ascon.h"
-#include "constants.h"
+// #include "ascon.h"
+// #include "constants.h"
+#include "permutations.h"
 #include "crypto_hash.h"
+
+#define ASCON_HASH_RATE (64 / 8)
 
 void kyber_ascon_absorb(ascon_state_t *state,
                         const uint8_t seed[KYBER_SYMBYTES],
                         uint8_t x,
                         uint8_t y);
 void kyber_ascon_prf(uint8_t *out,
-                        size_t outlen,
+                        uint32_t outlen,
                         const uint8_t key[KYBER_SYMBYTES],
                         uint8_t nonce);
-void ascon_squeezeblocks(uint8_t *out, size_t nblocks, ascon_state_t *state);
+void ascon_squeezeblocks(uint8_t *out, uint32_t nblocks, ascon_state_t *state);
 
 // #define shake128_absorb FIPS202_NAMESPACE(_shake128_absorb)
 // void shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen);
