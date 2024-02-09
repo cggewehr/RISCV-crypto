@@ -84,6 +84,8 @@ KYBER_STRENGTH ?= 512
 
 ifeq (${KYBER_VARIANT}, 90s)
 	DEFS += -DKYBER_90S
+else ifeq (${KYBER_VARIANT}, ASCON)
+	DEFS += -DKYBER_ASCON
 endif
 
 ifeq (${KYBER_STRENGTH}, 512)
@@ -156,7 +158,7 @@ endif
 
 INCS := -I$(PROGRAM_DIR) -I$(COMMON_DIR) -I$(TINYCRYPT_DIR) -I$(KECCAK_DIR) -I$(ASCON_DIR) -I$(KYBER_DIR)
 # CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -Os -fvisibility=hidden -ffreestanding -flto -fcallgraph-info=su $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
-CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -Os -fvisibility=hidden -ffreestanding -fcallgraph-info=su -fstack-usage $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
+CFLAGS ?= -march=$(ARCH) -mabi=ilp32 -static -mcmodel=medany -Wall -Os -fvisibility=hidden -ffreestanding -fcallgraph-info=su -fstack-usage -fdata-sections -ffunction-sections $(INCS) $(DEFS) $(PROGRAM_CFLAGS)
 CC = riscv64-elf-gcc
 CROSS_COMPILE = $(patsubst %-gcc,%-,$(CC))
 OBJCOPY ?= $(CROSS_COMPILE)objcopy
@@ -191,7 +193,7 @@ $(SW_BUILD_PATH)/obj/%.o: %.S
 
 ${SW_BUILD_PATH}/$(PROG).elf: $(OBJS)
 #	$(CC) -march=rv32imc -mabi=ilp32 -nostdlib -nostartfiles -T $(LINKER_SCRIPT) $(wildcard $(SW_BUILD_PATH)/*.o) -o ${SW_BUILD_PATH}/$(PROG).elf
-	$(CC) -march=rv32imc -mabi=ilp32 -nostartfiles -T $(LINKER_SCRIPT) $(OBJS) $(PROGRAM_LDFLAGS) -o ${SW_BUILD_PATH}/$(PROG).elf
+	$(CC) -march=rv32imc -mabi=ilp32 -nostartfiles -Wl,--gc-sections -T $(LINKER_SCRIPT) $(OBJS) $(PROGRAM_LDFLAGS) -o ${SW_BUILD_PATH}/$(PROG).elf
 	$(OBJDUMP) $(OBJDUMPFLAGS) $@ > $(subst .elf,.dis,$@)
 
 ${SW_BUILD_PATH}/$(PROG).bin: ${SW_BUILD_PATH}/$(PROG).elf
