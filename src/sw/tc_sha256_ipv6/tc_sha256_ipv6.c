@@ -64,7 +64,7 @@ unsigned int test_1(void)
         // const char *m = "abc";
         char m[1224];
         uint8_t digest[32];
-        struct tc_sha256_state_struct s;
+        // struct tc_sha256_state_struct s;
 
         for (int i = 0; i < 1224; i++)
             m[i] = i;
