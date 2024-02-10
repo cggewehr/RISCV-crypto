@@ -57,17 +57,17 @@ SYMBOLS_LIST="tc_aes128_set_encrypt_key
 # SYMBOLS_LIST+=tc_sha256_update
 # SYMBOLS_LIST+=tc_sha256_final
 # SYMBOLS_LIST+=sha256_compress
-SYMBOLS_LIST+=pqcrystals_sha2_ref_sha2
+# SYMBOLS_LIST+=pqcrystals_sha2_ref_sha2
 # SYMBOLS_LIST+=tc_sha512_init
 # SYMBOLS_LIST+=tc_sha512_update
 # SYMBOLS_LIST+=tc_sha512_final
 # SYMBOLS_LIST+=sha512_compress
-SYMBOLS_LIST+=pqcrystals_sha2_ref_sha512
+# SYMBOLS_LIST+=pqcrystals_sha2_ref_sha512
 # SYMBOLS_LIST+=ascon_permute
 # SYMBOLS_LIST+=crypto_aead_chacha20poly1305_ietf_encrypt
 # SYMBOLS_LIST+=crypto_aead_chacha20poly1305_ietf_encrypt.constprop.0
 # SYMBOLS_LIST+=tc_ccm_generation_encryption
-# SYMBOLS_LIST+=sha3_f1600_rvb32
+SYMBOLS_LIST+=sha3_f1600_rvb32
 SYMBOLS_LIST+=pqcrystals_kyber512_90s_ref_keypair
 SYMBOLS_LIST+=pqcrystals_kyber512_90s_ref_enc
 SYMBOLS_LIST+=pqcrystals_kyber512_90s_ref_dec
@@ -141,6 +141,7 @@ SYMBOLS_LIST+=pqcrystals_kyber1024_ref_dec
 # SYMBOLS_LIST+=pqcrystals_kyber1024_ref_cbd_eta1
 # SYMBOLS_LIST+=pqcrystals_kyber1024_ref_cbd_eta2
 # SYMBOLS_LIST+=rvkat_info
+SYMBOLS_LIST+=ascon_hash
 SYMBOLS_LIST+=ascon_core"
 
 START_TIME?=0ns
@@ -153,6 +154,9 @@ export POWER_ANALYSIS_REPORT_NAME=${SIM_NAME}
 export POWER_ANALYSIS_START_TIME=${START_TIME}
 export POWER_ANALYSIS_END_TIME=${END_TIME}
 
+# NEEDS TO BE THE SAME AS IN common.mk
+KYBER_VARIANT ?= KECCAK
+
 sw:
 
 	@echo -e "\n---- Building VMEM file from <${SW_BUILD_PATH}/${PROG}>"
@@ -161,6 +165,7 @@ sw:
 	awk '{split(${SYMBOLS_LIST}, sym_list); for (i in sym_list) if (sym_list[i] == $$3) print $$3, $$1}' sw_build/nm.out > sw_build/symbol_table.txt
 	@echo -e "\n---- Stack Usage:"
 	python3 ${ROOT_PATH}/tools/stack-usage/checkStackUsage.py ./sw_build/${PROG}.elf ./sw_build $(subst $\",,$(SYMBOLS_LIST)) | tee sw_build/stack-usage.txt
+	python3 ${ROOT_PATH}/tools/section-sizes/section-sizes.py ./sw_build/dis ${KYBER_VARIANT} | tee sw_build/section-sizes.txt
 
 comp:
 
