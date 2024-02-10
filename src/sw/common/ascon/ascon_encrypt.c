@@ -18,7 +18,8 @@ int ascon_aead_encrypt_opt64(
     const u64 K1 = U64BIG(*(u64 *)(k + 8));
     const u64 N0 = U64BIG(*(u64 *)npub);
     const u64 N1 = U64BIG(*(u64 *)(npub + 8));
-    state s;
+    // state s;
+    ascon_state_t s;
     u64 i;
     (void)nsec;
 
@@ -31,7 +32,8 @@ int ascon_aead_encrypt_opt64(
     s.x2 = K1;
     s.x3 = N0;
     s.x4 = N1;
-    P12();
+    // P12();
+    ascon_p12(&s);
     s.x3 ^= K0;
     s.x4 ^= K1;
 
@@ -39,14 +41,16 @@ int ascon_aead_encrypt_opt64(
     if (adlen) {
         while (adlen >= RATE) {
             s.x0 ^= U64BIG(*(u64 *)ad);
-            P6();
+            // P6();
+            ascon_p6(&s);
             adlen -= RATE;
             ad += RATE;
         }
         for (i = 0; i < adlen; ++i, ++ad)
             s.x0 ^= INS_BYTE64(*ad, i);
         s.x0 ^= INS_BYTE64(0x80, adlen);
-        P6();
+        // P6();
+        ascon_p6(&s);
     }
     s.x4 ^= 1;
 
@@ -54,7 +58,8 @@ int ascon_aead_encrypt_opt64(
     while (mlen >= RATE) {
         s.x0 ^= U64BIG(*(u64 *)m);
         *(u64 *)c = U64BIG(s.x0);
-        P6();
+        // P6();
+        ascon_p6(&s);
         mlen -= RATE;
         m += RATE;
         c += RATE;
@@ -68,7 +73,8 @@ int ascon_aead_encrypt_opt64(
     // finalization
     s.x1 ^= K0;
     s.x2 ^= K1;
-    P12();
+    // P12();
+    ascon_p12(&s);
     s.x3 ^= K0;
     s.x4 ^= K1;
 

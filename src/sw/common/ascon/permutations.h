@@ -6,7 +6,8 @@ typedef unsigned long long u64;
 
 typedef struct {
   u64 x0, x1, x2, x3, x4;
-} state;
+// } state;
+} ascon_state_t;
 
 #define EXT_BYTE64(x, n) ((u8)((u64)(x) >> (8 * (7 - (n)))))
 #define INS_BYTE64(x, n) ((u64)(x) << (8 * (7 - (n))))
@@ -59,41 +60,43 @@ typedef struct {
 #define P12_CONST 0xf0
 #define P6_CONST 0x96
 
-#define P12()    \
-  do {           \
-    STATE_VARS(); \
-    s0 = s.x0; \
-    s1 = s.x1; \
-    s2 = s.x2; \
-    s3 = s.x3; \
-    s4 = s.x4; \
-    for (int i = P12_CONST; i >= 0x4b; i -= 0xf) { \
-      ROUND(i); \
-    } \
-    s.x0 = s0; \
-    s.x1 = s1; \
-    s.x2 = s2; \
-    s.x3 = s3; \
-    s.x4 = s4; \
-  } while (0)
+#define P12(s) ascon_p12(s);
+// #define P12()    \
+//   do {           \
+//     STATE_VARS(); \
+//     s0 = s.x0; \
+//     s1 = s.x1; \
+//     s2 = s.x2; \
+//     s3 = s.x3; \
+//     s4 = s.x4; \
+//     for (int i = P12_CONST; i >= 0x4b; i -= 0xf) { \
+//       ROUND(i); \
+//     } \
+//     s.x0 = s0; \
+//     s.x1 = s1; \
+//     s.x2 = s2; \
+//     s.x3 = s3; \
+//     s.x4 = s4; \
+//   } while (0)
 
-#define P6()     \
-  do {           \
-    STATE_VARS(); \
-    s0 = s.x0; \
-    s1 = s.x1; \
-    s2 = s.x2; \
-    s3 = s.x3; \
-    s4 = s.x4; \
-    for (int i = P6_CONST; i >= 0x4b; i -= 0xf) { \
-      ROUND(i); \
-    } \
-    s.x0 = s0; \
-    s.x1 = s1; \
-    s.x2 = s2; \
-    s.x3 = s3; \
-    s.x4 = s4; \
-  } while (0)
+#define P6(s) ascon_p6(s);
+// #define P6()     \
+//   do {           \
+//     STATE_VARS(); \
+//     s0 = s.x0; \
+//     s1 = s.x1; \
+//     s2 = s.x2; \
+//     s3 = s.x3; \
+//     s4 = s.x4; \
+//     for (int i = P6_CONST; i >= 0x4b; i -= 0xf) { \
+//       ROUND(i); \
+//     } \
+//     s.x0 = s0; \
+//     s.x1 = s1; \
+//     s.x2 = s2; \
+//     s.x3 = s3; \
+//     s.x4 = s4; \
+//   } while (0)
 
 #endif  // PERMUTATIONS_H_
 

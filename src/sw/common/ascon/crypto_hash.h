@@ -1,1 +1,3 @@
-int ascon_hash(const unsigned char *m, unsigned long long mlen, const unsigned char *c, unsigned long long clen,  int xof);
+#include <stdint.h>
+
+int ascon_hash(const unsigned char *m, uint32_t mlen, const unsigned char *c, uint32_t clen,  int xof);
