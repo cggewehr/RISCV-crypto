@@ -72,7 +72,7 @@ int tc_sha256_update(TCSha256State_t s, const uint8_t *data, size_t datalen)
         return TC_CRYPTO_SUCCESS;
     }
 
-    
+
     while (datalen-- > 0) {
         s->leftover[s->leftover_offset++] = *(data++);
         if (s->leftover_offset >= TC_SHA256_BLOCK_SIZE) {
@@ -155,16 +155,62 @@ static const unsigned int k256[64] = {
 	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-#ifndef SHA256_RISCV_ASM
 static inline unsigned int ROTR(unsigned int a, unsigned int n)
 {
 	return (((a) >> n) | ((a) << (32 - n)));
 }
 
-#define Sigma0(a)(ROTR((a), 2) ^ ROTR((a), 13) ^ ROTR((a), 22))
-#define Sigma1(a)(ROTR((a), 6) ^ ROTR((a), 11) ^ ROTR((a), 25))
-#define sigma0(a)(ROTR((a), 7) ^ ROTR((a), 18) ^ ((a) >> 3))
-#define sigma1(a)(ROTR((a), 17) ^ ROTR((a), 19) ^ ((a) >> 10))
+// #define Sigma0(a)(ROTR((a), 2) ^ ROTR((a), 13) ^ ROTR((a), 22))
+uint32_t __attribute__((always_inline)) inline Sigma0(uint32_t a) {
+
+    #ifdef SHA256_ZKNH
+    uint32_t ret_val;
+    __asm__("sha256sum0 %0, %1" : "=r"(ret_val) : "r"(a));
+    return ret_val;
+    #else
+    return (ROTR((a), 2) ^ ROTR((a), 13) ^ ROTR((a), 22));
+    #endif
+
+}
+
+// #define Sigma1(a)(ROTR((a), 6) ^ ROTR((a), 11) ^ ROTR((a), 25))
+uint32_t __attribute__((always_inline)) inline Sigma1(uint32_t a) {
+
+    #ifdef SHA256_ZKNH
+    uint32_t ret_val;
+    __asm__("sha256sum1 %0, %1" : "=r"(ret_val) : "r"(a));
+    return ret_val;
+    #else
+    return (ROTR((a), 6) ^ ROTR((a), 11) ^ ROTR((a), 25));
+    #endif
+
+}
+
+// #define sigma0(a)(ROTR((a), 7) ^ ROTR((a), 18) ^ ((a) >> 3))
+uint32_t __attribute__((always_inline)) inline sigma0(uint32_t a) {
+
+    #ifdef SHA256_ZKNH
+    uint32_t ret_val;
+    __asm__("sha256sig0 %0, %1" : "=r"(ret_val) : "r"(a));
+    return ret_val;
+    #else
+    return (ROTR((a), 7) ^ ROTR((a), 18) ^ ((a) >> 3));
+    #endif
+
+}
+
+// #define sigma1(a)(ROTR((a), 17) ^ ROTR((a), 19) ^ ((a) >> 10))
+uint32_t __attribute__((always_inline)) inline sigma1(uint32_t a) {
+
+    #ifdef SHA256_ZKNH
+    uint32_t ret_val;
+    __asm__("sha256sig1 %0, %1" : "=r"(ret_val) : "r"(a));
+    return ret_val;
+    #else
+    return (ROTR((a), 17) ^ ROTR((a), 19) ^ ((a) >> 10));
+    #endif
+
+}
 
 #define Ch(a, b, c)(((a) & (b)) ^ ((~(a)) & (c)))
 #define Maj(a, b, c)(((a) & (b)) ^ ((a) & (c)) ^ ((b) & (c)))
@@ -179,303 +225,43 @@ static inline unsigned int BigEndian(const uint8_t **c)
 	n |= ((unsigned int)(*((*c)++)));
 	return n;
 }
-#endif
 
 static void sha256_compress(unsigned int *iv, const uint8_t *data)
 {
-    #ifndef SHA256_RISCV_ASM
-	unsigned int a, b, c, d, e, f, g, h;
-	unsigned int s0, s1;
-	unsigned int t1, t2;
-	unsigned int work_space[16];
-	unsigned int n;
-	unsigned int i;
 
-	a = iv[0]; b = iv[1]; c = iv[2]; d = iv[3];
-	e = iv[4]; f = iv[5]; g = iv[6]; h = iv[7];
+    unsigned int a, b, c, d, e, f, g, h;
+    unsigned int s0, s1;
+    unsigned int t1, t2;
+    unsigned int work_space[16];
+    unsigned int n;
+    unsigned int i;
 
-	for (i = 0; i < 16; ++i) {
-		n = BigEndian(&data);
-		t1 = work_space[i] = n;
-		t1 += h + Sigma1(e) + Ch(e, f, g) + k256[i];
-		t2 = Sigma0(a) + Maj(a, b, c);
-		h = g; g = f; f = e; e = d + t1;
-		d = c; c = b; b = a; a = t1 + t2;
-	}
+    a = iv[0]; b = iv[1]; c = iv[2]; d = iv[3];
+    e = iv[4]; f = iv[5]; g = iv[6]; h = iv[7];
 
-	for ( ; i < 64; ++i) {
-		s0 = work_space[(i+1)&0x0f];
-		s0 = sigma0(s0);
-		s1 = work_space[(i+14)&0x0f];
-		s1 = sigma1(s1);
+    for (i = 0; i < 16; ++i) {
+        n = BigEndian(&data);
+        t1 = work_space[i] = n;
+        t1 += h + Sigma1(e) + Ch(e, f, g) + k256[i];
+        t2 = Sigma0(a) + Maj(a, b, c);
+        h = g; g = f; f = e; e = d + t1;
+        d = c; c = b; b = a; a = t1 + t2;
+    }
 
-		t1 = work_space[i&0xf] += s0 + s1 + work_space[(i+9)&0xf];
-		t1 += h + Sigma1(e) + Ch(e, f, g) + k256[i];
-		t2 = Sigma0(a) + Maj(a, b, c);
-		h = g; g = f; f = e; e = d + t1;
-		d = c; c = b; b = a; a = t1 + t2;
-	}
+    for ( ; i < 64; ++i) {
+        s0 = work_space[(i+1)&0x0f];
+        s0 = sigma0(s0);
+        s1 = work_space[(i+14)&0x0f];
+        s1 = sigma1(s1);
 
-	iv[0] += a; iv[1] += b; iv[2] += c; iv[3] += d;
-	iv[4] += e; iv[5] += f; iv[6] += g; iv[7] += h;
+        t1 = work_space[i&0xf] += s0 + s1 + work_space[(i+9)&0xf];
+        t1 += h + Sigma1(e) + Ch(e, f, g) + k256[i];
+        t2 = Sigma0(a) + Maj(a, b, c);
+        h = g; g = f; f = e; e = d + t1;
+        d = c; c = b; b = a; a = t1 + t2;
+    }
 
-    #else
-
-    // Relevant words of message schedule for current "i"
-    unsigned int workspace[16];
-
-    register uint32_t* iv_ptr asm ("a0") = iv;
-    const register uint8_t* leftover_ptr asm ("a1") = data;
-    const register unsigned int* k256_ptr asm("a3") = k256;
-    register unsigned int* workspace_ptr asm("a4") = workspace;
-
-    // REG TABLE
-
-    // a0: Pointer to running state (not used, but necessary to caller control logic, shouldn't be modified)
-    // a1: Pointer to message block (s.leftover)
-    // a2: throwaway temp
-    // a3: Data from compressed load/store & throwaway temp
-    // a4: Pointer to workspace[] (Used for compressed load/store)
-    // a5: throwaway temp
-
-    // s0: H state variable
-    // s1: G state variable
-    // s2: F state variable
-    // s3: E state variable
-    // s4: D state variable
-    // s5: C state variable
-    // s6: B state variable
-    // s7: A state variable
-
-    // t0: i counter
-    // t2: Saves SP, restores at the end
-    // t4: workspace index mask (0x3F = 0xF <<< 2)
-    // t5: Pointer to sha2_workspace[] (Used for compressed load/store)
-    // t6: (A and B) from previous iteration, used as (B and C) in next iteration
-
-    asm volatile (
-
-        // Save S0-S7 registers to stack
-        "addi sp, sp, -32 \n"
-        "sw s0, 0(sp)  \n"
-        "sw s1, 4(sp)  \n"
-        "sw s2, 8(sp)  \n"
-        "sw s3, 12(sp)  \n"
-        "sw s4, 16(sp)  \n"
-        "sw s5, 20(sp)  \n"
-        "sw s6, 24(sp)  \n"
-        "sw s7, 28(sp)  \n"
-        "mv t2, sp  \n"
-
-        // Init SHA-256 state from IV
-        "mv sp, a0  \n"  //  Allows for compact encoding when assembling with C extension
-        "lw s7, 0(sp)  \n"
-        "lw s6, 4(sp)  \n"
-        "lw s5, 8(sp)  \n"
-        "lw s4, 12(sp)  \n"
-        "lw s3, 16(sp)  \n"
-        "lw s2, 20(sp)  \n"
-        "lw s1, 24(sp)  \n"
-        "lw s0, 28(sp)  \n"
-
-        // Init t0 to round counter (0 < i < 64) and inits constants
-        "mv t0, x0  \n"
-        "li t4, 0x3f  \n"
-        "mv t5, a4  \n"
-        "mv sp, a3  \n"
-
-        // t6 <= (B and C) from first iteration, used in computing MAJ(A, B, C)
-        "and t6, s5, s6  \n"
-
-        "sha256_compress_iter_top:  \n"
-
-            // Choose if load W[i] from data[] (i < 16) or compute new W (i >= 16)
-            "li a3, 64  \n"  // (16 << 2)
-            "bge t0, a3, sha256_compress_compute_new_W  \n"
-
-            // Fall through to load W[i] from data[], i < 16
-            "sha256_compress_load_W_from_workspace:  \n"
-
-                // a2 <= data[i]
-                "lw a2, 0(a1)  \n"
-
-                // Convert data[i] to big-endian
-                "li a3, 0xFF  \n"
-
-                //"and a5, a3, a2  \n"
-                "and a4, a3, a2  \n"
-                "c.slli a4, 24  \n"
-                "c.slli a3, 8  \n"
-                //"c.or a4, a5  \n"
-
-                "and a5, a3, a2  \n"
-                "c.slli a5, 8  \n"
-                "c.slli a3, 8  \n"
-                "c.or a4, a5  \n"
-
-                "and a5, a3, a2  \n"
-                "c.srli a5, 8  \n"
-                "c.slli a3, 8  \n"
-                "c.or a4, a5  \n"
-
-                "and a5, a3, a2  \n"
-                "c.srli a5, 24  \n"
-                "c.or a4, a5  \n"
-                "c.mv a2, a4  \n"
-
-                // W[i] <= data[i]
-                "c.mv a5, t5  \n"
-                "c.add a5, t0  \n"
-                "c.sw a2, 0(a5)  \n"
-                "c.mv a4, t5  \n"
-
-                // Increment pointer to data[i]
-                "c.addi a1, 4  \n"
-
-                // Jump to "sha256_compress_compute_state"
-                "c.j sha256_compress_compute_state  \n"
-
-            // Compute new W, i >= 16
-            "sha256_compress_compute_new_W:  \n"
-
-                // Get a2 = W[i+1 & 0xF] (equivalent to W[i-15])
-                "c.mv a5, t0  \n"
-                "c.addi a5, 4  \n"  // (1 << 2)
-                "and a5, a5, t4  \n"
-                "c.add a5, a4  \n"
-                "c.lw a2, 0(a5)  \n"
-
-                // Compute Sigma0(a2)   W[i+1]
-                "sha256sig0 a2, a2  \n"
-
-                // Get a3 = W[i+14 & 0xF] (equivalent to W[i-2])
-                "c.mv a5, t0  \n"
-                "addi a5, a5, 56  \n"  // (14 << 2)
-                "and a5, a5, t4  \n"
-                "c.add a5, a4  \n"
-                "c.lw a3, 0(a5)  \n"
-
-                // Compute Sigma1(a3)   W[i+14]
-                "sha256sig1 a3, a3  \n"
-
-                // a2 = a2 + a3 (a2 now contains Sig0(W[i-2]) + Sig1(W[i-14]))
-                "c.add a2, a3  \n"
-
-                // Get a5 = W[i] (will be replaced in this iteration)  (equivalent to W[i-16])
-                "c.mv a5, t0  \n"
-                "and a5, a5, t4  \n"
-                "c.add a5, a4  \n"
-                "c.lw a3, 0(a5)  \n"
-
-                // a2 = a2 + a3  (a2 now contains Sig0(W[i-2]) + Sig1(W[i-14] + W[i-16]))
-                "c.add a2, a3  \n"
-
-                // Get a3 = W[i+9 & 0xF]  (equivalent to W[i-7])  \n"
-                "c.mv a5, t0  \n"
-                "addi a5, a5, 36  \n"  // (9 << 2)
-                "and a5, a5, t4  \n"
-                "c.add a5, a4  \n"
-                "c.lw a3, 0(a5)  \n"
-
-                // a2 = a2 + a3  (a2 now contains Sig0(W[i-2]) + Sig1(W[i-14] + W[i-16] + W[i-14], new W[i] is finished being computed))
-                "c.add a2, a3  \n"
-
-                // W[i] = a2 (Saves newly computed schedule word to message schedule)
-                "and a3, t4, t0  \n"
-                "c.add a3, a4  \n"
-                "c.sw a2, 0(a3)  \n"
-
-            // a2 now contains W[i] (such that this is reused by both branches)
-            "sha256_compress_compute_state:  \n"
-
-                "sha256sum1 a5, s3  \n"  // a5 <= Sum1(E)
-                "c.add a2, a5  \n"  // a2 not contains W[i] + Sum1(E)
-                
-                "c.lwsp a5, 0(sp)  \n"
-                "c.add a2, a5  \n"  // a2 not contains W[i]) + Sum1(E) + K[i]
-                "c.add a2, s0  \n"  // a2 not contains W[i]) + Sum1(E) + K[i] + H
-                
-                // Updates H, G, and F variables, freeing up s4 (current E) register for temp use
-                "c.mv s0, s1  \n"  // s0 now contains G
-                "c.mv s1, s2  \n"  // s1 now contains F
-                "c.mv s2, s3  \n"  // s2 now contains E
-                
-                // Compute CH(E, F, G)
-                "and a5, s1, s2  \n"   // a5 <= E and F
-                "xori s3, s3, -1  \n"  // s3 <= not E
-                "and a3, s0, s3  \n"   // s3 <= (not E) and G
-                "c.xor a5, a3  \n"  // a5 now contains CH(E, F, G)
-                "c.add a2, a5  \n"  // a2 now contains W[i] + Sum1(E) + K[i] + CH(E, F, G) + H (<t1> SHA-256 variable)
-                
-                "add s3, s4, a2  \n"  // s3 now contains new E. At this point state variables H, G, F and E have been updated
-                
-                // Updates D, C, and B variables, freeing up s7 (current A) register for temp use
-                "c.mv s4, s5  \n"  // s4 now contains C
-                "c.mv s5, s6  \n"  // s5 now contains B
-                "c.mv s6, s7  \n"  // s6 now contains A
-                
-                "sha256sum0 s7, s7  \n"  // s7 <= Sum0(A)
-                
-                // Compute MAJ(A, B, C)
-                "and a5, s4, s6  \n"  // a5 <= A and C
-                "xor a5, a5, t6  \n"  // a5 <= (A and C) xor (B and C) (Reuses A and B from previous iteration)
-                "and t6, s5, s6  \n"  // t6 <= (A and B) (Equivalent to B and C in next iteration)
-                "xor a5, a5, t6  \n"  // a5 <= (A and C) xor (B and C) xor (A and B)
-
-                // Finish computing variable <t2>
-                "c.add a5, s7  \n"
-                
-                "add s7, a2, a5  \n"  // A <= <t1> + <t2>, this finishes updating all state vars for this iteration
-
-            // Increment counters and loop back to top_iter
-            "c.addi t0, 4  \n"
-            "c.addi sp, 4  \n"
-            "slti a3, t0, 256  \n"  // (64 << 2)
-            "c.bnez a3, sha256_compress_iter_top  \n"
-
-        // Add state vars to IV, yielding next IV
-        "mv sp, a0   \n"  //  Allows for compact encoding when assembling with C extension
-        "lw a3, 0(sp)  \n"
-        "add s7, s7, a3  \n"
-        "lw a3, 4(sp)  \n"
-        "add s6, s6, a3  \n"
-        "lw a3, 8(sp)  \n"
-        "add s5, s5, a3  \n"
-        "lw a3, 12(sp)  \n"
-        "add s4, s4, a3  \n"
-        "lw a3, 16(sp)  \n"
-        "add s3, s3, a3  \n"
-        "lw a3, 20(sp)  \n"
-        "add s2, s2, a3  \n"
-        "lw a3, 24(sp)  \n"
-        "add s1, s1, a3  \n"
-        "lw a3, 28(sp)  \n"
-        "add s0, s0, a3  \n"
-
-        // Commit next IV to memory
-        "sw s7, 0(sp)   \n"
-        "sw s6, 4(sp)   \n"
-        "sw s5, 8(sp)   \n"
-        "sw s4, 12(sp)   \n"
-        "sw s3, 16(sp)  \n"
-        "sw s2, 20(sp)  \n"
-        "sw s1, 24(sp)   \n"
-        "sw s0, 28(sp)   \n"
-
-        // Restore saved registers from stack
-        "mv sp, t2  \n"
-        "lw s0, 0(sp)  \n"
-        "lw s1, 4(sp)  \n"
-        "lw s2, 8(sp)  \n"
-        "lw s3, 12(sp)  \n"
-        "lw s4, 16(sp)  \n"
-        "lw s5, 20(sp)  \n"
-        "lw s6, 24(sp)  \n"
-        "lw s7, 28(sp)  \n"
-        "addi sp, sp, 32  \n"
-
-    ::"r" (iv_ptr), "r" (leftover_ptr), "r" (k256_ptr), "r" (workspace_ptr):);
-
-    #endif
+    iv[0] += a; iv[1] += b; iv[2] += c; iv[3] += d;
+    iv[4] += e; iv[5] += f; iv[6] += g; iv[7] += h;
 
 }

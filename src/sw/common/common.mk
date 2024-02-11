@@ -6,19 +6,21 @@
 # Defines for ISE-specific ASM
 # ------------------------------
 
-SHA256_ASM ?= 0
-SHA512_ASM ?= 0
+# SHA256_ASM ?= 0
+SHA256_ZKNH ?= 0
+# SHA512_ASM ?= 0
+SHA512_ZKNH ?= 0
 AES_ASM ?= 0
 ASCON_ISE ?= 0
 KYBER_ISE ?= 0
 SET_CUSTOM_BINUTILS?=0
 
-ifneq (${SHA256_ASM}, 0)
-	DEFS += -DSHA256_RISCV_ASM
+ifneq (${SHA256_ZKNH}, 0)
+	DEFS += -DSHA256_ZKNH
 endif
 
 ifneq (${SHA512_ASM}, 0)
-	DEFS += -DSHA512_RISCV_ASM
+	DEFS += -DSHA512_ZKNH
 endif
 
 ifneq (${AES_ASM}, 0)
@@ -79,7 +81,8 @@ endif
 # Defines are used in "param.h" to set variant (Kyber-90s or Keccak) and security (512, 768 or 1024)
 # ------------------------------
 
-KYBER_VARIANT ?= 90s
+# KYBER_VARIANT ?= 90s
+KYBER_VARIANT ?= KECCAK
 KYBER_STRENGTH ?= 512
 
 ifeq (${KYBER_VARIANT}, 90s)
