@@ -55,6 +55,7 @@ SECTIONS
         *(.srodata.*)
         *(.rodata);
         *(.rodata.*)
+        . = ALIGN(4);
     } > ram
 
     .data : {
