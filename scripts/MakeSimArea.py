@@ -18,7 +18,7 @@ def MakeSimArea(DirName):
         while True:
 
             ipt = input()
-            
+
             if ipt == "Y" or ipt == "y":
                 break  # TODO: Prompt if sim dir should be wiped clean
             elif ipt == "N" or ipt == "n":
@@ -27,6 +27,10 @@ def MakeSimArea(DirName):
     # Make sim dir in RISCV-crypto/build/sim/($DIR_NAME)
     os.makedirs(SimPath, exist_ok = True)  # exist_ok argument to makedirs() only works for Python 3.2+
     os.makedirs(SimPath + "/sw_build", exist_ok = True)
+    os.makedirs(SimPath + "/sw_build/dis", exist_ok = True)
+    os.makedirs(SimPath + "/sw_build/obj", exist_ok = True)
+    os.makedirs(SimPath + "/sw_build/su", exist_ok = True)
+    os.makedirs(SimPath + "/sw_build/vcg", exist_ok = True)
     os.makedirs(SimPath + "/log", exist_ok = True)
     os.makedirs(SimPath + "/deliverables", exist_ok = True)
     os.makedirs(SimPath + "/deliverables/shm", exist_ok = True)
@@ -56,7 +60,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument("--DirName", "-d", type = str, help = "Name of new sim area to be created within build/")
 
     args = parser.parse_args()
