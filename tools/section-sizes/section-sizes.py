@@ -8,7 +8,7 @@ def main():
     kyberVariant = sys.argv[2]
 
     KyberBaseObj = ["cbd", "indcpa", "kem", "ntt", "poly", "polyvec", "reduce", "rng", "verify"]
-    KyberSymObj = {"KECCAK": ["sha3_api", "symmetric-shake", "sha3_f1600_rvb32"], "90s": ["kyber_sha256", "kyber_sha512", "symmetric-aes"], "ASCON": ["symmetric-ascon", "ascon_hash", "permutations.c"]}
+    KyberSymObj = {"KECCAK": ["sha3_api", "symmetric-shake", "sha3_f1600_rvb32"], "90s": ["kyber_sha256", "kyber_sha512", "symmetric-aes"], "ASCON": ["symmetric-ascon", "ascon_hash", "permutations"]}
 
     textSecSizeMatcher = re.compile("\.text\.([a-zA-Z0-9_-]*)\s+([a-zA-Z0-9]+)")
     dataSecSizeMatcher = re.compile("(\..*data[.a-zA-Z0-9-_]*)\s+([a-zA-Z0-9]+)\s+")

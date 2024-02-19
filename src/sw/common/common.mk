@@ -19,7 +19,7 @@ ifneq (${SHA256_ZKNH}, 0)
 	DEFS += -DSHA256_ZKNH
 endif
 
-ifneq (${SHA512_ASM}, 0)
+ifneq (${SHA512_ZKNH}, 0)
 	DEFS += -DSHA512_ZKNH
 endif
 
