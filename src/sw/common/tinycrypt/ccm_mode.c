@@ -76,8 +76,10 @@ static void ccm_cbc_mac(uint8_t *T, const uint8_t *data, unsigned int dlen,
 	}
 
 	while (i < dlen) {
-		T[i++ % (Nb * Nk)] ^= *data++;
-		if (((i % (Nb * Nk)) == 0) || dlen == i) {
+		// T[i++ % (Nb * Nk)] ^= *data++;
+		T[i++ % (Nb * 4)] ^= *data++;
+		// if (((i % (Nb * Nk)) == 0) || dlen == i) {
+		if (((i % (Nb * 4)) == 0) || dlen == i) {
 			(void) tc_aes_encrypt(T, T, sched);
 		}
 	}
