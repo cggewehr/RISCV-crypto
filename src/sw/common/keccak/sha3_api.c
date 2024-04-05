@@ -95,7 +95,11 @@ void *sha3(uint8_t * md, int mdlen, const void *in, size_t inlen)
 
 void shake_xof(sha3_ctx_t * c)
 {
+	#if defined(TURBOSHAKE)
+	c->st.b[c->pt] ^= 0x07;
+	#else
 	c->st.b[c->pt] ^= 0x1F;
+	#endif
 	c->st.b[c->rsiz - 1] ^= 0x80;
 	sha3_f1600_rvb32(c->st.d);
 	c->pt = 0;

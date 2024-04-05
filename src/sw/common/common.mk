@@ -77,6 +77,16 @@ else
 endif
 
 # ------------------------------
+# Use TurboSHAKE XOFs (12-round Keccak permutation)
+# ------------------------------
+
+TURBOSHAKE ?= 0
+
+ifneq (${TURBOSHAKE}, 0)
+	DEFS += -DTURBOSHAKE
+endif
+
+# ------------------------------
 # Kyber variant and security levels defines
 # Defines are used in "param.h" to set variant (Kyber-90s or Keccak) and security (512, 768 or 1024)
 # ------------------------------

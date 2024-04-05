@@ -42,6 +42,16 @@ static void sha3_f1600_rvb32_join(uint32_t v[50]) {
 void sha3_f1600_rvb32(void *s) {
 
 	//	round constants (interleaved)
+	#if defined(TURBOSHAKE)
+	const uint32_t rc[24] = {
+		0x00000001,
+		0x0000808B, 0x00000001, 0x8000000B, 0x00000001, 0x8000008A,
+		0x00000001, 0x80000081, 0x00000000, 0x80000081, 0x00000000,
+		0x80000008, 0x00000000, 0x00000083, 0x00000000, 0x80008003,
+		0x00000001, 0x80008088, 0x00000000, 0x80000088, 0x00000001,
+		0x00008000, 0x00000000, 0x80008082
+	};
+	#else
 	const uint32_t rc[48] = {
 		0x00000001, 0x00000000, 0x00000000, 0x00000089, 0x00000000,
 		0x8000008B, 0x00000000, 0x80008080, 0x00000001, 0x0000008B,
@@ -54,6 +64,7 @@ void sha3_f1600_rvb32(void *s) {
 		0x00000001, 0x80008088, 0x00000000, 0x80000088, 0x00000001,
 		0x00008000, 0x00000000, 0x80008082
 	};
+	#endif
 
 	uint32_t t0, t1, t2, t3, t4, t5, t6, t7, t8, t9;
 	uint32_t u0, u1, u2, u3;
@@ -80,7 +91,11 @@ void sha3_f1600_rvb32(void *s) {
 
 	//	24 rounds
 
+	#if defined(TURBOSHAKE)
+	for (q = rc; q != &rc[24]; q += 2) {
+	#else
 	for (q = rc; q != &rc[48]; q += 2) {
+	#endif
 
 		//	Theta
 
