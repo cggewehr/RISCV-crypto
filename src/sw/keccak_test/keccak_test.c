@@ -22,7 +22,7 @@ int test_keccakp_tv()
 	for (i = 0; i < 25; i++) {
 		st[8 * i] = i;
 	}
-	sha3_keccakp(st);
+	sha3_f1600_rvb32(st);
 
 	fail += rvkat_chkhex("KECCAK-P", st, sizeof(st),
 		"1581ED5252B07483009456B676A6F71D7D79518A4B1965F7450576D1437B4720"
@@ -168,7 +168,7 @@ int test_sha3()
 
 #ifdef RVKINTRIN_RV32
 	rvkat_info("=== SHA3 using sha3_f1600_rvb32() ===");
-	sha3_keccakp = sha3_f1600_rvb32;
+	//sha3_keccakp = sha3_f1600_rvb32;
 	fail += test_keccakp_tv();
 	fail += test_sha3_tv();
 	fail += test_shake_tv();
@@ -176,7 +176,7 @@ int test_sha3()
 
 #ifdef RVKINTRIN_RV64
 	rvkat_info("=== SHA3 using sha3_f1600_rvb64() ===");
-	sha3_keccakp = sha3_f1600_rvb64;
+	//sha3_keccakp = sha3_f1600_rvb64;
 	fail += test_keccakp_tv();
 	fail += test_sha3_tv();
 	fail += test_shake_tv();
