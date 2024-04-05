@@ -5,7 +5,7 @@ set SIM_DIR $env(SIM_PATH)
 
 set_db script_search_path "${SCRIPTS_DIR} ${SCRIPTS_DIR}/genus"
 set_db hdl_search_path "${RISCV_CRYPTO_RTL}/syn/ ${RISCV_CRYPTO_RTL}/${RISCV_CORE}/ ${RISCV_CRYPTO_RTL}/util/"
-set_db information_level 9 
+set_db information_level 9
 
 set_db hdl_track_filename_row_col true
 set_db hdl_array_naming_style %s_%d
@@ -48,6 +48,7 @@ set_db lef_library "/soft64/design-kits/stm/28nm-cmos28fdsoi_25d/SiteDefKit_cmos
 
 # Set captable
 set_db cap_table_file "/soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit_cmos028_6U1x_2U2x_2T8x_LB@4.2.1/CAP_TABLE/FuncRCmax.captable"
+set_db qrc_tech_file "/soft64/design-kits/stm/28nm-cmos28lp_42/CadenceTechnoKit_cmos028_6U1x_2U2x_2T8x_LB@4.2.1/QRC_TECHFILE/FuncRCmax.tech"
 
 # Set PLE
 set_db interconnect_mode ple
