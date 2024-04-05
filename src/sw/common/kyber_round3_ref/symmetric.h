@@ -77,9 +77,16 @@ typedef sha3_ctx_t xof_state;
 #define XOF_BLOCKBYTES SHAKE128_RATE
 
 // #define hash_h(OUT, IN, INBYTES) sha3_256(OUT, IN, INBYTES)
+// #define hash_h(OUT, IN, INBYTES) sha3(OUT, 32, IN, INBYTES)
+#if defined(TURBOSHAKE)
+#define hash_h(OUT, IN, INBYTES) kyber_shake256(OUT, 32, IN, INBYTES)
+#define hash_g(OUT, IN, INBYTES) kyber_shake256(OUT, 64, IN, INBYTES)
+#else
 #define hash_h(OUT, IN, INBYTES) sha3(OUT, 32, IN, INBYTES)
-// #define hash_g(OUT, IN, INBYTES) sha3_512(OUT, IN, INBYTES)
 #define hash_g(OUT, IN, INBYTES) sha3(OUT, 64, IN, INBYTES)
+#endif
+// #define hash_g(OUT, IN, INBYTES) sha3_512(OUT, IN, INBYTES)
+// #define hash_g(OUT, IN, INBYTES) sha3(OUT, 64, IN, INBYTES)
 #define xof_absorb(STATE, SEED, X, Y) kyber_shake128_absorb(STATE, SEED, X, Y)
 // #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeezeblocks(OUT, OUTBLOCKS, STATE)
 #define xof_squeezeblocks(OUT, OUTBLOCKS, STATE) shake128_squeeze(STATE, OUT, OUTBLOCKS*XOF_BLOCKBYTES)
