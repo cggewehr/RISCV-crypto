@@ -137,20 +137,48 @@ void ntt(int16_t r[256]) {
   unsigned int len, start, j, k;
   int16_t t, zeta;
 
+  #ifdef KYBER_ISE
+  uint32_t* r_word_ptr = (uint32_t*) r;
+  #endif
+
   k = 1;
   for (len = 128; len >= 2; len >>= 1) {
     for (start = 0; start < 256; start = j + len) {
-      zeta = zetas[k++];
-      for (j = start; j < start + len; ++j) {
 
-        t = fqmul(zeta, r[j + len]);
+      zeta = zetas[k++];
+
+      #ifdef KYBER_ISE
+      for (j = start; j < start + len; j+=2) {
+      #else
+      for (j = start; j < start + len; ++j) {
+      #endif
 
         #ifdef KYBER_ISE
-        __asm__("kybersub %0, %1, %2" :  "=r"(r[j+len]) : "r"(r[j]), "r"(t));
-        __asm__("kyberadd %0, %1, %2" :  "=r"(r[j]) : "r"(r[j]), "r"(t));
+
+        uint32_t op_a, op_b;
+        uint32_t add_result, sub_result;
+        uint32_t temp1, temp2;
+
+        op_a = r_word_ptr[j/2];
+        op_b = r_word_ptr[j/2 + len/2];
+
+        __asm__ __volatile__ ("kybermul %0, %1, %2" :  "=r"(temp1) : "r"(zeta), "r"(op_b));
+        op_b = op_b >> 16;
+        __asm__ __volatile__ ("kybermul %0, %1, %2" :  "=r"(temp2) : "r"(zeta), "r"(op_b));
+        temp2 = temp2 << 16;
+        temp1 = temp1 | temp2;
+        __asm__ __volatile__ ("kybersub %0, %1, %2" :  "=r"(sub_result) : "r"(op_a), "r"(temp1));
+        __asm__ __volatile__ ("kyberadd %0, %1, %2" :  "=r"(add_result) : "r"(op_a), "r"(temp1));
+
+        r_word_ptr[j/2 + len/2] = sub_result;
+        r_word_ptr[j/2] = add_result;
+
         #else
+
+        t = fqmul(zeta, r[j + len]);
         r[j + len] = r[j] - t;
         r[j] = r[j] + t;
+
         #endif
       }
 
@@ -203,22 +231,43 @@ void invntt(int16_t r[256]) {
 
   #ifdef KYBER_ISE
   const int16_t f = 3303; // 1/128 scaling factor in Zq
+  uint32_t* r_word_ptr = (uint32_t*) r;
   #else
   const int16_t f = 1441; // mont^2/128
   #endif
 
   k = 127;
   for(len = 2; len <= 128; len <<= 1) {
+
     for(start = 0; start < 256; start = j + len) {
+
       zeta = zetas[k--];
+
+      #ifdef KYBER_ISE
+      for(j = start; j < start + len; j+=2) {
+      #else
       for(j = start; j < start + len; j++) {
+      #endif
 
         #ifdef KYBER_ISE
 
-        t = r[j];
-        __asm__("kyberadd %0, %1, %2" :  "=r"(r[j]) : "r"(r[j + len]), "r"(t));
-        __asm__("kybersub %0, %1, %2" :  "=r"(r[j + len]) : "r"(r[j + len]), "r"(t));
-        r[j + len] = fqmul(zeta, r[j + len]);
+        uint32_t op_a, op_b;  // SIMD add/sub mod q operands
+        uint32_t add_result, sub_result;  // SIMD add/sub mod q result
+        uint32_t temp1, temp2;
+
+        op_a = r_word_ptr[j/2];
+        op_b = r_word_ptr[j/2 + len/2];
+
+        __asm__ __volatile__("kyberadd %0, %1, %2" :  "=r"(add_result) : "r"(op_b), "r"(op_a));
+        __asm__ __volatile__("kybersub %0, %1, %2" :  "=r"(sub_result) : "r"(op_b), "r"(op_a));
+        __asm__ __volatile__("kybermul %0, %1, %2" :  "=r"(temp1) : "r"(zeta), "r"(sub_result));
+        sub_result = sub_result >> 16;
+        __asm__ __volatile__("kybermul %0, %1, %2" :  "=r"(temp2) : "r"(zeta), "r"(sub_result));
+        temp2 = temp2 << 16;
+        temp1 = temp1 | temp2;
+
+        r_word_ptr[j/2] = add_result;
+        r_word_ptr[j/2 + len/2] = temp1;
 
         #else
 
@@ -230,6 +279,7 @@ void invntt(int16_t r[256]) {
         #endif
 
       }
+
     }
   }
 
