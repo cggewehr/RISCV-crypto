@@ -38,7 +38,8 @@ int ascon_aead_decrypt_opt64(
     s.x3 = N0;
     s.x4 = N1;
     // P12();
-    ascon_p12(&s);
+    // ascon_p12(&s);
+    ascon_permute(&s, P12_CONST);
     s.x3 ^= K0;
     s.x4 ^= K1;
 
@@ -47,7 +48,8 @@ int ascon_aead_decrypt_opt64(
         while (adlen >= RATE) {
             s.x0 ^= U64BIG(*(u64 *)ad);
             // P6();
-            ascon_p6(&s);
+            // ascon_p6(&s);
+            ascon_permute(&s, P6_CONST);
             adlen -= RATE;
             ad += RATE;
         }
@@ -55,7 +57,8 @@ int ascon_aead_decrypt_opt64(
             s.x0 ^= INS_BYTE64(*ad, i);
         s.x0 ^= INS_BYTE64(0x80, adlen);
         // P6();
-        ascon_p6(&s);
+        // ascon_p6(&s);
+        ascon_permute(&s, P6_CONST);
     }
     s.x4 ^= 1;
 
@@ -65,7 +68,8 @@ int ascon_aead_decrypt_opt64(
         *(u64 *)m = U64BIG(s.x0) ^ *(u64 *)c;
         s.x0 = U64BIG(*((u64 *)c));
         // P6();
-        ascon_p6(&s);
+        // ascon_p6(&s);
+        ascon_permute(&s, P6_CONST);
         clen -= RATE;
         m += RATE;
         c += RATE;
@@ -81,7 +85,8 @@ int ascon_aead_decrypt_opt64(
     s.x1 ^= K0;
     s.x2 ^= K1;
     // P12();
-    ascon_p12(&s);
+    // ascon_p12(&s);
+    ascon_permute(&s, P12_CONST);
     s.x3 ^= K0;
     s.x4 ^= K1;
 

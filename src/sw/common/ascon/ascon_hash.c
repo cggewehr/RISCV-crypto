@@ -49,7 +49,8 @@ void ascon_hash_absorb(ascon_state_t *s_ptr, const unsigned char *m, uint32_t le
     s_ptr->x4 = 0;
 
     // P12();
-    ascon_p12(s_ptr);
+    // ascon_p12(s_ptr);
+    ascon_permute(s_ptr, P12_CONST);
 
     // puts("In ascon_hash_absorb \n");
 
@@ -57,7 +58,8 @@ void ascon_hash_absorb(ascon_state_t *s_ptr, const unsigned char *m, uint32_t le
         // s.x0 ^= U64BIG(*(u64 *)m);
         s_ptr->x0 ^= U64BIG(*(u64 *)m);
         // P12();
-        ascon_p12(s_ptr);
+        // ascon_p12(s_ptr);
+        ascon_permute(s_ptr, P12_CONST);
         len -= RATE;
         m += RATE;
     }
@@ -70,7 +72,8 @@ void ascon_hash_absorb(ascon_state_t *s_ptr, const unsigned char *m, uint32_t le
     s_ptr->x0 ^= INS_BYTE64(0x80, len);
 
     // P12();
-    ascon_p12(s_ptr);
+    // ascon_p12(s_ptr);
+    ascon_permute(s_ptr, P12_CONST);
 
     // *s_ptr = s;
 }
@@ -89,7 +92,8 @@ void ascon_hash_squeeze(ascon_state_t *s_ptr, unsigned char *out, uint32_t len, 
            *out = EXT_BYTE64(s_ptr->x0, i);
         }
         // P12();
-        ascon_p12(s_ptr);
+        // ascon_p12(s_ptr);
+        ascon_permute(s_ptr, P12_CONST);
         len -= RATE;
     }
     // puts("After ascon_hash_squeeze while \n");

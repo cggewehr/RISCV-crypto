@@ -60,7 +60,9 @@ typedef struct {
 #define P12_CONST 0xf0
 #define P6_CONST 0x96
 
-#define P12(s) ascon_p12(s);
+void ascon_permute(ascon_state_t *s, int init_round_constant);
+
+// #define P12(s) ascon_p12(s);
 // #define P12()    \
 //   do {           \
 //     STATE_VARS(); \
@@ -79,7 +81,7 @@ typedef struct {
 //     s.x4 = s4; \
 //   } while (0)
 
-#define P6(s) ascon_p6(s);
+// #define P6(s) ascon_p6(s);
 // #define P6()     \
 //   do {           \
 //     STATE_VARS(); \
