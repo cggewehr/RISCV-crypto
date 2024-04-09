@@ -233,13 +233,6 @@ void polyvec_pointwise_acc_montgomery(poly *r,
   poly_basemul_montgomery(r, &a->vec[0], &b->vec[0]);
   for(i=1;i<KYBER_K;i++) {
     poly_basemul_montgomery(&t, &a->vec[i], &b->vec[i]);
-
-    // FIXME
-    #ifdef KYBER_ISE
-      poly_reduce(r);
-      poly_reduce(&t);
-    #endif
-
     poly_add(r, r, &t);
   }
 
