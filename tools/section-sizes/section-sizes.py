@@ -7,8 +7,9 @@ def main():
     disassemblyDir = sys.argv[1]
     kyberVariant = sys.argv[2]
 
-    KyberBaseObj = ["cbd", "indcpa", "kem", "ntt", "poly", "polyvec", "reduce", "rng", "verify"]
-    KyberSymObj = {"KECCAK": ["sha3_api", "symmetric-shake", "sha3_f1600_rvb32"], "90s": ["kyber_sha256", "kyber_sha512", "symmetric-aes"], "ASCON": ["symmetric-ascon", "ascon_hash", "permutations"]}
+    KyberBaseObj = ["cbd", "indcpa", "kem", "ntt", "poly", "polyvec", "reduce", "rng", "verify", "ctr_prng"]
+    KyberSymObj = {"KECCAK": ["symmetric-shake"], "90s": ["kyber_sha256", "kyber_sha512", "symmetric-aes"], "ASCON": ["symmetric-ascon"]}
+    CommonSymObj = {"ASCON": ["ascon_decrypt", "ascon_encrypt", "ascon_hash", "permutations"], "KECCAK": ["sha3_api", "sha3_f1600_rvb32", "aes_encrypt_t_table", "ccm_mode", "utils"], "90s" : ["sha256", "sha512", "aes_encrypt_t_table", "ccm_mode", "utils"]}
 
     textSecSizeMatcher = re.compile("\.text\.([a-zA-Z0-9_-]*)\s+([a-zA-Z0-9]+)")
     dataSecSizeMatcher = re.compile("(\..*data[.a-zA-Z0-9-_]*)\s+([a-zA-Z0-9]+)\s+")
@@ -58,11 +59,13 @@ def main():
         print(f"\t\t{totalSize}: TOTAL .TEXT SIZE\n")
         textTotalSizes[obj] = totalSize
 
-    print("\tKyber total .text size:")
+    # print("\tKyber total .text size:")
+    print("\tCryptosystem total .text size:")
     totalSize = 0
 
     # for obj in KyberBaseObj:
-    for obj in KyberBaseObj + KyberSymObj[kyberVariant]:
+    # for obj in KyberBaseObj + KyberSymObj[kyberVariant]:
+    for obj in KyberBaseObj + KyberSymObj[kyberVariant] + CommonSymObj[kyberVariant]:
         totalSize += textTotalSizes[obj + ".dis"]
         print(f"\t\t{textTotalSizes[obj + '.dis']}: {obj}")
 
@@ -88,10 +91,12 @@ def main():
         print(f"\t\t{totalSize}: TOTAL .*DATA SIZE\n")
         dataTotalSizes[obj] = totalSize
 
-    print("\tKyber total .*data size:")
+    # print("\tKyber total .*data size:")
+    print("\tCryptosystem total .*data size:")
     totalSize = 0
 
-    for obj in KyberBaseObj + KyberSymObj[kyberVariant]:
+    # for obj in KyberBaseObj + KyberSymObj[kyberVariant]:
+    for obj in KyberBaseObj + KyberSymObj[kyberVariant] + CommonSymObj[kyberVariant]:
         totalSize += dataTotalSizes[obj + ".dis"]
         print(f"\t\t{dataTotalSizes[obj + '.dis']}: {obj}")
 
